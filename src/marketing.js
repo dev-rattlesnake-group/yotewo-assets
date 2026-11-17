@@ -713,7 +713,7 @@ function initNumberOdometer() {
 /* Swiper JS (151 KB) loads only on pages that have a slider (14 Nov 2026).
    swiper-bundle.min.css stays global in Global Styles [Before], so slides
    are laid out before the script arrives and nothing shifts. */
-var SWIPER_SRC = "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js";
+var SWIPER_SRC = "https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.js"; /* exact version: jsDelivr caches it for a year (a range gets 7 days) */
 var swiperLoading = false;
 function loadSwiper(cb) {
   if (typeof Swiper !== "undefined") { cb(); return; }
@@ -5208,7 +5208,8 @@ function initCalEmbed() {
   };
   document.addEventListener("pointerover", warm, { passive: true });
   document.addEventListener("focusin", warm);
-  (window.requestIdleCallback || function (f) { setTimeout(f, 3000); })(calLoad, { timeout: 6000 });
+  /* No idle preload (17 Nov, page speed): the Cal.com embed is heavy third-party
+     JS, so it loads only on hover/focus of a booking button, or on the click. */
 }
 
 
@@ -9037,6 +9038,18 @@ function initHpLists() {
     return all && grid ? { id: all.getAttribute("href").split("#")[1], grid: grid } : null;
   }).filter(Boolean);
   if (!tabs.length || !window.fetch || !window.DOMParser) return;
+  /* The hub page is ~300 KB of HTML: fetch and parse it only when the first
+     list comes within ~1.5 screens of the viewport (17 Nov, page speed). */
+  if ("IntersectionObserver" in window && !initHpLists.go) {
+    var io = new IntersectionObserver(function (es) {
+      if (!es.some(function (e) { return e.isIntersecting; })) return;
+      io.disconnect();
+      initHpLists.go = 1;
+      initHpLists();
+    }, { rootMargin: "1200px 0px" });
+    tabs.forEach(function (t) { io.observe(t.grid); });
+    return;
+  }
   fetch(HP_HUB, { credentials: "same-origin" })
     .then(function (r) { return r.ok ? r.text() : ""; })
     .then(function (html) {
