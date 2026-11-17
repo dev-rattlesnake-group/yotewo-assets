@@ -1,0 +1,59 @@
+/* ==========================================================================
+   YOTEWO — variables.css
+   Slater › CSS tab, first file. Paste without <style> tags.
+
+   Design and development: Rattlesnake Group (rsnake.co.uk).
+   Motion tokens follow the Rattlesnake Group base on purpose, so motion
+   stays consistent across its builds. Colours are Yotewo's and mirror the
+   Webflow variables of the same meaning; change both together.
+   ========================================================================== */
+
+/* ---------- Motion ---------- */
+:root {
+  /* The interface curve. Starts slowly, so it suits panels and arrivals on
+     the longer durations and is too lazy for pointer feedback. */
+  --ease-emphasis:  cubic-bezier(.625, .05, 0, 1);
+  --cubic-default:  var(--ease-emphasis);
+
+  /* easeOutQuint, Webflow's "Out Quint". The accordion's sibling dim. */
+  --ease-out-quint: cubic-bezier(.22, 1, .36, 1);
+
+  /* Reveal curve and duration, shared by [data-reveal] and the sticky CTA
+     so the two always arrive on the same motion. */
+  --ease-reveal:    cubic-bezier(.27, .09, .24, 1);
+  --time-reveal:    .7s;
+
+  /* Small overshoot, for things that land: a badge, a toggle. */
+  --cubic-bounce: linear(0, 0.5737 7.6%, 0.8382 11.87%, 0.9463 14.19%, 1.0292 16.54%, 1.0886 18.97%, 1.1258 21.53%, 1.137 22.97%, 1.1424 24.48%, 1.1423 26.1%, 1.1366 27.86%, 1.1165 31.01%, 1.0507 38.62%, 1.0219 42.57%, 0.9995 46.99%, 0.9872 51.63%, 0.9842 58.77%, 1.0011 81.26%, 1);
+
+  /* One curve, three distances. */
+  --time-quick:     200ms;   /* answering the pointer: colour, opacity, an icon */
+  --time-base:      400ms;   /* an underline, a chevron, a short move */
+  --time-slow:      600ms;   /* panels, arrivals, anything crossing distance */
+
+  /* Alias names for the same values, kept so shared components work. */
+  --duration-default:         var(--time-slow);
+  --duration-default-half:    .3s;
+  --duration-default-double:  1.2s;
+  --animation-default:        var(--duration-default) var(--ease-emphasis);
+  --animation-default-half:   var(--duration-default-half) var(--ease-emphasis);
+  --animation-default-double: var(--duration-default-double) var(--ease-emphasis);
+  --animation-ease:           var(--time-quick) ease;
+  --animation-ease-double:    var(--time-base) ease;
+}
+
+/* ---------- Colour ---------- */
+:root {
+  --color-ink:    #0b0c0e;   /* Webflow: neutral-shade-7 */
+  --color-blue:   #0059ed;   /* Webflow: Blue */
+  --color-grey:   #f7f7f8;   /* Webflow: Grey */
+  --color-line:   #dee0e3;   /* Webflow: Grey line */
+  --color-muted:  #7e869a;   /* Webflow: Grey Medium */
+
+  /* RGB triplets, for rgba() transparency. */
+  --color-rgb-ink:  11, 12, 14;
+  --color-rgb-blue: 0, 89, 237;
+  --color-rgb-grey: 247, 247, 248;
+}
+
+::selection { background-color: rgba(var(--color-rgb-blue), .18); }
