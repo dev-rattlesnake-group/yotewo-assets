@@ -117,6 +117,32 @@ function nextFrames(fn) {
   requestAnimationFrame(() => requestAnimationFrame(fn));
 }
 
+/* Motion gate (17 Nov 2026, page speed). Continuous canvas and WebGL loops
+   (hero aurora, glow panels, code glyphs, hire orbit, face arc) start on the
+   visitor's first interaction: pointer move, scroll, wheel, touch or key.
+   Until then each effect shows its first frame, so the first seconds of a
+   load go to content. softGL(): software WebGL (SwiftShader, llvmpipe, no
+   GPU) keeps the first frame only, it is too slow to animate. */
+var MOTION = { on: false, q: [] };
+function whenMotion(fn) { if (MOTION.on) fn(); else MOTION.q.push(fn); }
+(function () {
+  var ev = ["pointermove", "pointerdown", "scroll", "wheel", "touchstart", "keydown"];
+  function go() {
+    if (MOTION.on) return;
+    MOTION.on = true;
+    ev.forEach(function (e) { window.removeEventListener(e, go, true); });
+    MOTION.q.splice(0).forEach(function (f) { try { f(); } catch (e) {} });
+  }
+  ev.forEach(function (e) { window.addEventListener(e, go, { passive: true, capture: true }); });
+})();
+function softGL(gl) {
+  try {
+    var x = gl.getExtension("WEBGL_debug_renderer_info");
+    var r = x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(String(r));
+  } catch (e) { return false; }
+}
+
 /* Has the page stopped arriving?
 
    False for the first moments after init, true from then on. Entrance
@@ -1980,6 +2006,7 @@ function initLogoWallCycle() {
     if (!gl || !this.initGl(gl, base, colors)) { layer.removeChild(cv); return; }
     this.cv = cv;
     this.gl = gl;
+    this.soft = softGL(gl);
 
     var self = this;
     this._frame = function (now) { self.frame(now); };
@@ -2048,7 +2075,11 @@ function initLogoWallCycle() {
   };
 
   Aurora.prototype.play = function () {
-    if (this.still || this.raf) return;
+    if (this.still || this.soft || this.raf) return;
+    if (!MOTION.on) {
+      if (!this.gated) { this.gated = 1; var me = this; whenMotion(function () { me.play(); }); }
+      return;
+    }
     this.last = 0;
     this.raf = requestAnimationFrame(this._frame);
   };
@@ -2138,6 +2169,7 @@ function initLogoWallCycle() {
     if (this.amb > 0) {
       this.setup();
       var wake = function () {
+        if (!MOTION.on) { if (!self.gated) { self.gated = 1; whenMotion(wake); } return; }
         if (self.onScreen && !document.hidden && !self.raf) self.raf = requestAnimationFrame(self._tick);
       };
       if (window.IntersectionObserver) {
@@ -3512,6 +3544,7 @@ function initGlowBg() {
     var cv = document.createElement("canvas");
     var gl = cv.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, preserveDrawingBuffer: true, powerPreference: "low-power" });
     if (!gl) { GR = false; return null; }
+    var SOFT = softGL(gl);
     var vs = sh(gl, gl.VERTEX_SHADER, VS), fs = sh(gl, gl.FRAGMENT_SHADER, FS);
     if (!vs || !fs) { GR = false; return null; }
     var pr = gl.createProgram();
@@ -3588,16 +3621,24 @@ function initGlowBg() {
       });
       if (any) raf = requestAnimationFrame(loop);
     }
+    function start() { if (!RM && !SOFT && !raf && !dead) raf = requestAnimationFrame(loop); }
+    var gated = false;
     function update(i) {
       if (list.indexOf(i) < 0) list.push(i);
       if (!i.vis) i.t0 = null;
-      if (!RM && !raf && !dead) raf = requestAnimationFrame(loop);
+      if (MOTION.on && !SOFT) { start(); return; }
+      /* Before the first interaction (or on software WebGL): one still frame. */
+      if (i.vis && !i.painted) {
+        i.painted = 1;
+        requestAnimationFrame(function () { if (!dead) paint(i, i.last || 0); });
+      }
+      if (!gated && !SOFT) { gated = true; whenMotion(start); }
     }
     document.addEventListener("visibilitychange", function () {
       list.forEach(function (i) {
         i.t0 = null;
       });
-      if (!document.hidden && !RM && !raf && !dead) raf = requestAnimationFrame(loop);
+      if (MOTION.on) start();
     });
     GR = { paint: paint, update: update };
     return GR;
@@ -4962,6 +5003,7 @@ function initHireOrbit() {
     }
     function play() {
       if (raf || RM) return;
+      if (!MOTION.on) { draw(); whenMotion(play); return; }
       last = null;
       raf = requestAnimationFrame(loop);
     }
@@ -7262,14 +7304,14 @@ function initFaceArc() {
       }
       img.classList.add("face-arc-src");
       shown = true;
-      if (vis && !raf) { last = 0; raf = requestAnimationFrame(loop); }
+      whenMotion(function () { if (vis && !raf) { last = 0; raf = requestAnimationFrame(loop); } });
     };
     pic.src = sprite;
     window.addEventListener("resize", function () { measure(); render(); });
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (e) {
         vis = e[0].isIntersecting;
-        if (vis && shown && !raf) { last = 0; raf = requestAnimationFrame(loop); }
+        if (vis && shown && !raf && MOTION.on) { last = 0; raf = requestAnimationFrame(loop); }
       }, { rootMargin: "100px" }).observe(host);
     } else vis = true;
   });
