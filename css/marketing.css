@@ -1,0 +1,1111 @@
+/* ==========================================================================
+   YOTEWO — marketing.css
+   Slater › CSS tab. Paste without <style> tags. Load after variables.css.
+
+   Design and development: Rattlesnake Group (rsnake.co.uk).
+   Built on the Rattlesnake Group marketing.css base, numbering kept so the
+   two files can be diffed, plus two reusable UI components (21, 22).
+
+   House rules carried over unchanged
+   - Presentation (colour, type, spacing, borders) lives in Webflow Designer.
+   - This file holds only what Designer cannot express: structural state,
+     attribute-driven behaviour, and the motion contracts the JS tab reads.
+   - Components are namespaced by data-attribute rather than class.
+
+   Contents
+     2.  Base reset
+     3.  Accordion          [data-acc]
+     6.  Odometer           [data-odometer-element]
+     7.  Pulse dot          .yotewo-pulse-*
+     10. Swiper
+     14. Reduced motion
+     15. Reveal             [data-reveal]
+     17. Clamp              [data-clamp]
+     18. Underline          [data-underline]
+     19. Sticky CTA         [data-sticky]
+     20. Accordion media    [data-acc-media]
+     21. Tabs with visual   [data-tabs="wrapper"]
+     22. Logo wall cycle    [data-logo-wall-cycle-init]
+   ========================================================================== */
+
+
+/* ==========================================================================
+   2. BASE RESET
+   ========================================================================== */
+html {
+  scroll-behavior: initial;
+  scrollbar-width: none;              /* Firefox */
+}
+body {
+  -ms-overflow-style: none;           /* legacy Edge / IE */
+}
+body::-webkit-scrollbar {
+  display: none;                      /* Chrome, Safari, Opera */
+}
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+/* Webflow ships max-width:100% on svg, which crushes inline icons. */
+svg {
+  max-width: none;
+  height: auto;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+
+/* ==========================================================================
+   3. ACCORDION  [data-acc]
+   --------------------------------------------------------------------------
+   Markup contract
+     [data-acc]           wrapper. Space-separated flags: multi first merge debug
+     [data-acc-item]      one row
+     [data-acc-head]      the click target
+     [data-acc-body]      the collapsing panel
+     [data-acc-chevron]   optional icon wrapper, rotated on open
+
+   Tuning attributes, read once at init by the JS tab
+     data-acc-gap  data-acc-radius  data-acc-inner
+     data-acc-spring  data-acc-ease  data-acc-dur
+     data-acc-dim     hovering one row fades the others. Optional value is the
+                      opacity they fade to, 0.4 by default. Desktop only.
+
+   The script owns height, border-radius and item offsets. Card background,
+   padding, borders and typography stay in Designer.
+   ========================================================================== */
+
+/* Collapsed by default, so there is no flash of open content before init. */
+[data-acc-body] {
+  overflow: hidden;
+  height: 0;
+}
+[data-acc-head] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Strip UA styling when the head is a real <button> (preferred for a11y). */
+:where(button[data-acc-head]) {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+[data-acc-head]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
+}
+
+/* Content resolves slightly after the panel height, so the row reads as one
+   movement rather than two. Deliberately applied to the children, not the
+   panel: a transform on [data-acc-body] is counted into its own scroll
+   height and inflates the measurement the script animates to. */
+[data-acc-body] > * {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity   var(--time-base) var(--ease-emphasis),
+    transform 420ms var(--acc-spring, ease);
+}
+[data-acc-item][data-acc-open="true"] > [data-acc-body] > * {
+  opacity: 1;
+  transform: none;
+  transition-delay: 60ms;
+}
+
+/* Chevron.
+   inline-flex shrinks the box to the icon. With inline-block the box is
+   wider than the glyph, so the rotation pivots off-centre and the chevron
+   appears to swing sideways. line-height:0 removes the leftover line box. */
+[data-acc-chevron] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  transform-origin: 50% 50%;
+  transition: transform var(--acc-dur, 520ms) var(--acc-spring, ease);
+}
+[data-acc-chevron] > svg { display: block; }
+[data-acc-item][data-acc-open="true"] [data-acc-chevron] {
+  transform: rotate(180deg);
+}
+
+
+/* ── dim the siblings on hover   [data-acc-dim] ──
+   Pointing at one row fades the rest of them. The value on the attribute is
+   the opacity they fade to; the JS tab reads it and publishes --acc-dim.
+
+   Gated behind a real pointer, and that is not politeness. On a touch screen
+   :hover latches after a tap and stays latched, so the row somebody just
+   opened would hold every other row at 40 per cent until they tapped
+   somewhere else. hover:hover with pointer:fine is the pair that means a
+   mouse; the width query keeps it to Webflow's desktop breakpoint, since the
+   effect needs a list tall enough to read as a list in the first place.
+
+   The timings are asymmetric, and that asymmetry is the whole character of
+   it: the fade settles slowly, the recovery snaps back. Carried on a custom
+   property rather than on the transition shorthand, because in merge mode the
+   script writes an inline transition for margin and radius, and an inline
+   shorthand cannot be overridden by a later rule. A variable inside that
+   shorthand can. */
+@media (hover: hover) and (pointer: fine) and (min-width: 992px) {
+  [data-acc][data-acc-dim] [data-acc-item] {
+    --acc-dim-t: 300ms;
+    transition: opacity var(--acc-dim-t) var(--ease-out-quint, cubic-bezier(.22, 1, .36, 1));
+  }
+  [data-acc][data-acc-dim]:hover [data-acc-item]:not(:hover) {
+    --acc-dim-t: 600ms;
+    opacity: var(--acc-dim, .4);
+  }
+}
+
+
+/* ==========================================================================
+   6. ODOMETER  [data-odometer-element]
+   --------------------------------------------------------------------------
+   The roller is translated vertically inside a clipped mask. The padding /
+   negative-margin pair gives glyph ascenders and descenders room to render
+   without widening the clip box.
+   ========================================================================== */
+[data-odometer-element] {
+  display: inline-flex;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+[data-odometer-part="mask"],
+[data-odometer-part="static"] {
+  display: inline-block;
+  overflow: clip;
+  padding: 0.05em;
+  margin: -0.05em;
+}
+[data-odometer-part="roller"] {
+  display: block;
+  white-space: pre;
+  text-align: center;
+  will-change: transform;
+}
+
+
+/* ==========================================================================
+   7. PULSE DOT  (live indicator)
+   ========================================================================== */
+.yotewo-pulse-wrap {
+  --yotewo-pulse: #0059ed;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.yotewo-pulse-ring {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--yotewo-pulse, #0059ed);
+  opacity: 0.5;
+  animation: yotewo-pulse 1.6s ease-out infinite;
+  will-change: transform, opacity;
+}
+.yotewo-pulse-dot {
+  position: relative;
+  z-index: 2;
+  width: 7.5px;
+  height: 7.5px;
+  border-radius: 50%;
+  background: var(--yotewo-pulse, #0059ed);
+}
+@keyframes yotewo-pulse {
+  0%   { transform: scale(1);    opacity: 0.5; }
+  100% { transform: scale(1.75); opacity: 0;   }
+}
+.yotewo-pulse-wrap.is-white { --yotewo-pulse: #ffffff; }
+
+
+/* ==========================================================================
+   10. SWIPER
+   --------------------------------------------------------------------------
+   Swiper reads its own custom properties off the element, so these stay
+   scoped to body rather than :root — that is where Swiper's own stylesheet
+   expects to inherit them from.
+   ========================================================================== */
+body {
+  --swiper-pagination-color: currentColor;
+  --swiper-pagination-bottom: auto;
+  --swiper-pagination-bullet-size: 0.5em;
+  --swiper-pagination-bullet-inactive-color: currentColor;
+  --swiper-pagination-bullet-inactive-opacity: 0.15;
+  --swiper-pagination-bullet-horizontal-gap: 0.25em;
+  --swiper-wrapper-transition-timing-function: var(--ease-emphasis);
+}
+
+/* Gutter lives on the slide; the last slide reclaims it so the track ends
+   flush with the container. */
+.swiper-slide {
+  --gap: 1.25em;
+  padding-right: var(--gap);
+}
+.swiper-slide:last-of-type {
+  margin-right: calc(-1 * var(--gap));
+}
+.swiper-navigation__button { transition: opacity var(--time-quick) var(--ease-emphasis); }
+.swiper-button-disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Swiper stretches horizontal pagination to the full width of its parent.
+   A pagination we placed ourselves, inside a control row, should hug its
+   bullets instead; three classes outrank Swiper's two. */
+[data-swiper-group] [data-swiper-pagination].swiper-pagination-horizontal {
+  width: auto;
+}
+
+
+/* ==========================================================================
+   14. REDUCED MOTION
+   One block for the whole file. Add future components here rather than
+   repeating the query per section.
+
+   Two components are deliberately NOT listed: the marquee in section 5 and
+   the media pane in section 20. Both want something more specific than a
+   blanket 1ms, and both carry their own query for that reason. The pane in
+   particular keeps its crossfade and drops only the movement, because the
+   crossfade is what tells you the picture changed and the travel is only
+   decoration.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  [data-acc-body],
+  [data-acc-body] > *,
+  [data-acc-chevron],
+  [data-acc-item] {
+    transition-duration: 1ms !important;
+  }
+  .yotewo-pulse-ring { animation: none; }
+}
+
+
+/* ==========================================================================
+   15. REVEAL   [data-reveal]
+   --------------------------------------------------------------------------
+   Titles and subtitles arriving the way Lightspark do it. Their numbers, read
+   out of /_next/static/chunks/1568-3624c8da939b3e31.js rather than eyeballed:
+
+     from      opacity 0, translateY(10px), blur(14px)
+     to        opacity 1, translateY(0),    blur(0)
+     duration  0.7s, the same for every element
+     ease      cubic-bezier(.27, .09, .24, 1)
+     delays    0.10s title, 0.25s subtitle, 0.35s buttons
+     trigger   on mount for the hero, no observer
+
+   Two things about their build are worth knowing before copying it. The h1 is
+   split into <span> lines, but the lines do NOT stagger; they are line-break
+   wrappers and the whole heading animates as one. And the blur is interpolated
+   as a filter string on the same curve as everything else, not on a timing of
+   its own. What reads as a stagger is only those three hand-written delays.
+
+   Their second preset, for lists and cards, comes from chunk 6261: opacity 0
+   with a 4px rise, 0.24s ease-out, 40ms per item, fired by an observer at
+   threshold 0.2, once. That is `rise` below.
+
+   Markup contract
+     [data-reveal]              the group. Default fires when it scrolls in
+     [data-reveal="load"]       fires on page load instead, for a hero
+     [data-reveal="rise"]       the small list preset
+     [data-reveal="tilt"]       Rejouice's card fly-in, for grids of cards
+     [data-reveal-item]         each element that moves. Delays are assigned in
+                                document order unless you set one yourself
+     [data-reveal-delay="0.4"]  override for one item, in seconds
+
+   The script removes the filter entirely once the run finishes. blur(0px) is
+   not free: a filter makes the element a containing block for anything fixed
+   or absolute inside it, gives it its own stacking context and keeps it on a
+   composited layer. Leaving it on a heading forever is a real cost.
+   ========================================================================== */
+
+[data-reveal] {
+  --reveal-ease:  var(--ease-reveal, cubic-bezier(.27, .09, .24, 1));
+  --reveal-time:  var(--time-reveal, .7s);
+  --reveal-rise:  10px;
+  --reveal-blur:  14px;
+
+  /* The whole start transform, as one value, so a preset can replace it
+     outright instead of every preset having to know about every axis. */
+  --reveal-from:  translateY(var(--reveal-rise));
+  --reveal-origin: 50% 50%;
+}
+
+/* Nothing happens until the script says so, so a visitor without JS reads the
+   page in full rather than a blank column. */
+[data-reveal].is-armed [data-reveal-item] {
+  opacity: 0;
+  transform: var(--reveal-from);
+  transform-origin: var(--reveal-origin);
+  filter: blur(var(--reveal-blur));
+  will-change: opacity, transform, filter;
+}
+
+/* The transition is declared ONLY on the finished state, and that is
+   deliberate. A transition lives on the computed style the element ends up
+   with, so putting it here means hiding the item is instant and revealing it
+   animates. Declared on the armed rule instead, arming itself would animate:
+   the item would fade out over 0.7s on page load, fire transitionend, and the
+   cleanup below would then strip the transition before the reveal ever ran.
+   That is a silent failure, and the reason a scroll-triggered group would snap
+   into place with no animation at all. */
+[data-reveal].is-in [data-reveal-item] {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+  transition:
+    opacity   var(--reveal-time) var(--reveal-ease) var(--reveal-delay, 0s),
+    transform var(--reveal-time) var(--reveal-ease) var(--reveal-delay, 0s),
+    filter    var(--reveal-time) var(--reveal-ease) var(--reveal-delay, 0s);
+}
+
+/* Applied per item when its own transition ends. Drops the compositing cost
+   and the containing-block side effect of a filter that is doing nothing.
+   Written long enough to outweigh the .is-in rule above, which is what actually
+   holds blur(0) on the element. */
+[data-reveal].is-in [data-reveal-item].is-done {
+  filter: none;
+  will-change: auto;
+  transition: none;   /* or dropping the filter tweens blur(0) to none for nothing */
+}
+
+/* The list preset: a shorter, smaller move with no blur, 40ms apart. */
+[data-reveal="rise"] {
+  --reveal-time: .24s;
+  --reveal-ease: cubic-bezier(0, 0, .58, 1);   /* ease-out */
+  --reveal-rise: 4px;
+  --reveal-blur: 0px;
+}
+
+/* The card preset, Rejouice's. The same values their marquee tiles use, from
+   /_nuxt/BdSAQIjB.js: 40% down, rotateY 12 then rotateX 45, one second,
+   power1.inOut, 0.1s apart, pivoting on the bottom edge.
+
+   No perspective, deliberately. Without one the two rotations flatten into a
+   squash with a horizontal shear, and that lean is what reads as theirs; add
+   perspective and it becomes a 3D card flip, which looks more correct and less
+   like the original. The order is not interchangeable either: rotateY before
+   rotateX puts the shear on the horizontal axis, the other way round puts it
+   on the vertical.
+
+   Use it on a grid of cards, not on a heading. On text the squash reads as a
+   rendering fault for the first few frames. */
+[data-reveal="tilt"] {
+  --reveal-time: 1s;
+  --reveal-ease: cubic-bezier(.45, 0, .55, 1);   /* GSAP power1.inOut */
+  --reveal-blur: 0px;
+  --reveal-from: translateY(40%) rotateY(12deg) rotateX(45deg);
+  --reveal-origin: bottom;
+}
+
+/* A tilted card starts below its own box, so a section that clips will slice
+   it. Same runway the marquee uses, and the same reason. Only needed where an
+   ancestor has overflow hidden; harmless everywhere else. */
+[data-reveal="tilt"].has-runway {
+  padding-bottom: var(--reveal-runway, 8rem);
+  margin-bottom: calc(var(--reveal-runway, 8rem) * -1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal].is-armed [data-reveal-item] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
+
+/* ==========================================================================
+   17. CLAMP   [data-clamp]
+   --------------------------------------------------------------------------
+   Long copy cut to a fixed number of LINES, with a fade at the cut and a
+   Read more that opens it on the accordion's own spring.
+
+   Lines, not characters, and that is the whole point of the component. A
+   hundred characters is two lines in one column and one line in another, so a
+   character threshold leaves a three-column row uneven at exactly the widths
+   where it mattered. Lines are what the eye is levelling, so lines are what the
+   component counts, and it re-counts them on resize because the same copy
+   rewraps at every breakpoint.
+
+   Markup contract, all in Designer, no Embed
+     data-clamp="5"            the text block. The value is the line count
+     data-clamp-more="..."     button label when closed  (default "Read more")
+     data-clamp-less="..."     button label when open    (default "Read less")
+     data-clamp-class="..."    classes put on the button
+                               (default "text-color-black text-size-xsmall";
+                                set it to "" for no class at all)
+
+   The button is created by the script and only when the text ACTUALLY
+   overflows. A Read more that opens nothing is worse than no Read more, and at
+   some widths the same paragraph fits.
+
+   Motion is the accordion's, not a copy of it: both read the curve out of
+   rsSpring() in the JS tab, so retuning one retunes the other.
+   ========================================================================== */
+
+/* The fade has to animate, and a custom property only animates if its type is
+   declared. Without this the mask would jump from faded to clear in one frame
+   while the height glides, which reads as two separate things happening. */
+@property --clamp-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+[data-clamp] {
+  --clamp-fade: 0px;
+  overflow: hidden;
+
+  /* Set by the script from the element's own measured line-height, so the cut
+     lands on a baseline rather than part-way through a line of text. */
+  max-height: var(--clamp-h, none);
+
+  /* Alpha, not a coloured overlay. A gradient to the card colour would need to
+     know the card colour, and would show as a smear the moment the same
+     component appears on the dark sections. A mask fades to transparent and
+     therefore works on any ground. */
+  -webkit-mask-image: linear-gradient(to bottom,
+    #000 calc(100% - var(--clamp-fade)), transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    #000 calc(100% - var(--clamp-fade)), transparent 100%);
+
+  transition:
+    max-height    var(--clamp-dur, 520ms) var(--clamp-ease, ease),
+    --clamp-fade  var(--clamp-dur, 520ms) var(--clamp-ease, ease);
+}
+
+/* Closed. The fade is a little over two lines so it reads as text receding
+   rather than as a band laid across the last one. */
+[data-clamp].is-clamped { --clamp-fade: 2.25em; }
+
+/* Open and settled. The script releases the height to none once the transition
+   ends, so a resize or a late font swap cannot leave the panel clipped at the
+   height it happened to measure. */
+[data-clamp].is-open { --clamp-fade: 0px; }
+
+/* Nothing is hidden before the script has measured, so a visitor with no JS
+   reads the whole paragraph instead of a permanently truncated one. */
+[data-clamp]:not(.is-clamped):not(.is-open) {
+  max-height: none;
+  -webkit-mask-image: none;
+          mask-image: none;
+}
+
+/* ── the control ──
+   A real button: it is operated by keyboard and read by screen readers, and a
+   div with a click handler is neither.
+
+   Everything to do with type lives inside :where(), which carries zero
+   specificity. That is the point. The label has to read as part of the copy it
+   belongs to, so the script measures the real font off the clamped text and
+   feeds it in through the custom properties below; because the rule has no
+   specificity, any class you put on the button in Designer still wins over it.
+
+   Colour and size are deliberately left alone here and handed to Designer
+   classes instead: data-clamp-class, "text-color-black text-size-xsmall"
+   unless you say otherwise. A Webflow class beats a zero-specificity rule
+   whichever order the stylesheets load in, which a plain
+   .rs-clamp-toggle { color: ... } would not.
+
+   Letter-spacing is measured off the copy but handed over in em rather than
+   px, so it stays in proportion when a size class makes the label smaller than
+   the paragraph it belongs to. Leading is set to 1 rather than measured: the
+   label is one line, and the paragraph's leading would only pad the button. */
+:where(.rs-clamp-toggle) {
+  font-family:    var(--clamp-ff, inherit);
+  font-size:      var(--clamp-fs, inherit);
+  font-weight:    var(--clamp-fw, inherit);
+  font-style:     var(--clamp-fi, inherit);
+  line-height:    1;
+  letter-spacing: var(--clamp-ls, inherit);
+  text-transform: var(--clamp-tt, inherit);
+  color: inherit;
+}
+.rs-clamp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  margin-top: .625rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--time-quick) var(--ease-emphasis, ease);
+}
+
+/* Full strength at rest, so the colour on the page is exactly the colour the
+   class sets. The dip belongs to the hover, not to the resting state. */
+.rs-clamp-toggle:hover { opacity: .6; }
+.rs-clamp-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+/* The chevron turns rather than the label changing shape, which is the same
+   gesture the accordion makes and on the same curve. */
+.rs-clamp-toggle svg {
+  width: .875em;
+  height: .875em;
+  display: block;
+  transition: transform var(--clamp-dur, 520ms) var(--clamp-ease, ease);
+}
+.rs-clamp-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-clamp],
+  .rs-clamp-toggle svg { transition: none; }
+}
+
+
+/* ==========================================================================
+   18. UNDERLINE  [data-underline]
+   --------------------------------------------------------------------------
+   An underline that draws itself on hover. No library and no JS: the whole
+   component is two pseudo-elements and a transform, which is why it costs
+   nothing and cannot fall out of sync with anything else on the page.
+
+   Markup contract, all in Designer
+     data-underline            wipe in from the left   (the default)
+     data-underline="centre"   grow out from the middle
+     data-underline="swap"     resting line leaves right, new one enters left
+     data-underline="out"      starts underlined, wipes away on hover
+     data-underline="through"  in from the left, out to the right (uses the JS tab)
+     data-underline="wrap"     for a link inside a paragraph, see below
+
+   Tunable on the element itself or on any ancestor, so a whole footer can be
+   set once:
+     --ul-size    thickness            default 1px  (try .06em to scale with type)
+     --ul-colour  line colour          default currentColor
+     --ul-gap     distance below text  default .14em
+     --ul-dur     duration             default 420ms
+
+   Transforms, not width, so the work happens on the compositor and a row of
+   twenty links costs the same as one.
+
+   Why there are two kinds. The first four variants are a pseudo-element, which
+   is a single box and therefore cannot break across lines: right for a nav
+   item, a button or a standalone link, wrong for a link in the middle of a
+   paragraph, where it would draw one line under both halves. "wrap" paints the
+   line as a background instead, so each line fragment gets its own and each
+   draws from its own left edge.
+
+   Every :not() below is wrapped in :where(), which contributes no specificity.
+   Without that, the base rule would outrank the variant rules that are meant
+   to override it and "out" would resolve to the default.
+   ========================================================================== */
+
+[data-underline] {
+  --ul-size:   1px;
+  --ul-colour: currentColor;
+  --ul-gap:    .14em;
+  --ul-dur:    var(--time-base);
+  --ul-ease:   var(--ease-emphasis, cubic-bezier(.625, .05, 0, 1));
+
+  position: relative;
+  display: inline-block;
+  color: inherit;
+
+  /* The component IS the underline, so the browser's own one would double it.
+     Removed here rather than in Designer so the two cannot disagree. */
+  text-decoration: none;
+}
+
+[data-underline]:where(:not([data-underline="wrap"]))::before,
+[data-underline]:where(:not([data-underline="wrap"]))::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--ul-gap) * -1);
+  height: var(--ul-size);
+  background: var(--ul-colour);
+  pointer-events: none;
+
+  /* X only, so a 1px line stays 1px however far it stretches. Scaling a box
+     and its border together is what makes most versions of this effect go
+     soft at the ends. */
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--ul-dur) var(--ul-ease);
+}
+
+/* ::before belongs to "swap" alone. Kept out of the way everywhere else so the
+   default variant draws one line and not two stacked. */
+[data-underline]:where(:not([data-underline="swap"]))::before { content: none; }
+
+/* Keyboard gets what the mouse gets. A hover-only effect is an effect some of
+   your visitors never see. */
+[data-underline]:hover::after,
+[data-underline]:focus-visible::after { transform: scaleX(1); }
+
+/* ── centre ── */
+[data-underline="centre"]::after { transform-origin: center; }
+
+/* ── out ──
+   The inverse: underlined at rest, and the line retreats the way the cursor
+   came. Reads as the link stepping forward rather than reacting. */
+[data-underline="out"]::after {
+  transform: scaleX(1);
+  transform-origin: right center;
+}
+[data-underline="out"]:hover::after,
+[data-underline="out"]:focus-visible::after { transform: scaleX(0); }
+
+/* ── swap ──
+   Two lines, handed off. The delay sits on the incoming line while hovering
+   and on the returning line while leaving, so the exchange runs the same way
+   round in both directions instead of the two crossing in the middle. */
+[data-underline="swap"]::before {
+  transform: scaleX(1);
+  transform-origin: right center;
+  transition-delay: calc(var(--ul-dur) * .35);
+}
+[data-underline="swap"]:hover::before,
+[data-underline="swap"]:focus-visible::before {
+  transform: scaleX(0);
+  transition-delay: 0ms;
+}
+[data-underline="swap"]:hover::after,
+[data-underline="swap"]:focus-visible::after {
+  transition-delay: calc(var(--ul-dur) * .35);
+}
+
+/* ── wrap ──
+   Stays display:inline so the line can break, and the line is a background
+   whose width animates. box-decoration-break:clone is what gives each fragment
+   its own background box; without it the first line takes the whole gradient
+   and the second gets nothing. */
+[data-underline="wrap"] {
+  --ul-gap: .06em;
+  display: inline;
+  background-image: linear-gradient(var(--ul-colour), var(--ul-colour));
+  background-repeat: no-repeat;
+  background-size: 0% var(--ul-size);
+  background-position: 0 calc(100% - var(--ul-gap));
+  transition: background-size var(--ul-dur) var(--ul-ease);
+  -webkit-box-decoration-break: clone;
+          box-decoration-break: clone;
+}
+[data-underline="wrap"]:hover,
+[data-underline="wrap"]:focus-visible { background-size: 100% var(--ul-size); }
+
+/* ── through ──
+   Comes in from the left, leaves to the right. Two states, two different end
+   points, which is more than CSS hover can express on its own: :hover has one
+   resting state, and the resting state is where the line must both start and
+   finish.
+
+   The pure-CSS answer is to flip transform-origin instead of animating it. At
+   rest the origin is the right edge and the line is scaled to nothing, so the
+   flip to the left edge on hover happens at zero width and cannot be seen;
+   the flip back happens at full width, where it cannot be seen either. The
+   line therefore grows rightward and shrinks rightward.
+
+   That version is correct as long as the animation is allowed to finish. Pull
+   the cursor away halfway and the origin flips while the line is half drawn,
+   which moves it bodily across the word. This is the jump you were looking at.
+
+   So this block is the baseline, and initUnderline() in the JS tab upgrades it
+   for browsers that can do better. No JS, no upgrade, no jump you would notice
+   unless you were hunting for it. */
+[data-underline="through"]::after { transform-origin: right center; }
+[data-underline="through"]:hover::after,
+[data-underline="through"]:focus-visible::after { transform-origin: left center; }
+
+/* The upgrade. The script appends a real element, because a pseudo-element is
+   not addressable from script and the only way to reach one is through an
+   inherited custom property, which would mean putting a transition shorthand
+   on the link itself and quietly killing whatever colour transition Designer
+   has on it.
+
+   clip-path rather than a transform, so both edges of the line are independent
+   values. That is the whole trick: growing animates the right edge, leaving
+   animates the left edge, and an interrupted animation resumes from wherever
+   the two edges currently are instead of being snapped to a new origin. */
+[data-underline="through"][data-ul-js]::after { content: none; }
+
+[data-underline="through"] > .rs-ul {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--ul-gap) * -1);
+  height: var(--ul-size);
+  background: var(--ul-colour);
+  pointer-events: none;
+
+  /* Closed, collapsed against the right edge. */
+  clip-path: inset(0 0 0 100%);
+  transition: clip-path var(--ul-dur) var(--ul-ease);
+}
+
+@media (hover: none) {
+  [data-underline="through"] > .rs-ul { clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-underline="through"] > .rs-ul { transition: none; }
+}
+
+/* ── touch ──
+   There is no hover on a phone, so the line would simply never appear. Shown
+   at rest instead, which is also the accessible answer for a link sitting in a
+   paragraph: without it, nothing but colour marks it as a link. Delete this
+   block if you are using the component on nav items only. */
+@media (hover: none) {
+  [data-underline]:where(:not([data-underline="wrap"]))::after { transform: scaleX(1); }
+  [data-underline="swap"]::before { content: none; }
+  [data-underline="out"]:hover::after,
+  [data-underline="out"]:focus-visible::after { transform: scaleX(1); }
+  [data-underline="wrap"] { background-size: 100% var(--ul-size); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-underline]::before,
+  [data-underline]::after,
+  [data-underline="wrap"] { transition: none; }
+}
+
+
+/* ==========================================================================
+   19. STICKY CTA  [data-sticky]
+   --------------------------------------------------------------------------
+   A fixed button that rises into place once the reader has got somewhere, and
+   drops back out once they have arrived somewhere else.
+
+   The motion is section 15's, not an imitation of it: both read --ease-reveal
+   and --time-reveal out of the tokens, so retuning the reveal retunes this and
+   the two can never drift apart.
+
+   Markup contract, all in Designer
+     data-sticky              the fixed button, or its wrapper
+     data-sticky-from         appears once this element is behind you, that
+                              is once its bottom edge clears the top of the
+                              screen. Put it on the hero.
+     data-sticky-until        leaves once this element is reached, that is
+                              once its top edge crosses the trigger line. Put
+                              it on the footer or the contact block.
+     data-sticky-line="0.9"   where that line sits in the viewport, as a
+                              fraction of its height. 0.9 is the line
+                              [data-reveal] fires on. Optional, affects
+                              "until" only.
+
+   A trigger can go on any element, including an empty Div dropped at the exact
+   point you want the button to appear. For a zero-height marker the two rules
+   above are the same rule, which makes it the most predictable placement of
+   the three.
+
+   To run two of them on one page, give each a name and repeat the name on its
+   triggers: data-sticky="pricing" with data-sticky-from="pricing".
+
+   Both triggers are optional. No "from" and it is eligible from the top of the
+   page; no "until" and it never leaves.
+
+   One difference from section 15 worth stating. The reveal fades in through a
+   blur and this does not, deliberately. A filter makes an element a containing
+   block for anything fixed inside it and pins it to its own composited layer,
+   which is a fair price for a heading that animates once and is then cleaned
+   up, and a poor one for an element that sits on screen for the whole visit.
+   ========================================================================== */
+
+[data-sticky] {
+  --sticky-ease: var(--ease-reveal, cubic-bezier(.27, .09, .24, 1));
+  --sticky-time: var(--time-reveal, .7s);
+
+  /* Further than the reveal's 10px, because this one is travelling from
+     outside the viewport edge rather than from just under its final spot. */
+  --sticky-rise: 1.5rem;
+
+  opacity: 0;
+  transform: translateY(var(--sticky-rise));
+
+  /* Hidden properly, not merely transparent: a 0-opacity button still takes
+     keyboard focus and still reads out to a screen reader. visibility is not
+     interpolated, it is switched at the end of the timing it is given, which
+     is why it is held for the length of the fade on the way out and released
+     immediately on the way in. */
+  visibility: hidden;
+  pointer-events: none;
+
+  transition:
+    opacity    var(--sticky-time) var(--sticky-ease),
+    transform  var(--sticky-time) var(--sticky-ease),
+    visibility 0s linear var(--sticky-time);
+}
+
+[data-sticky].is-on {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity    var(--sticky-time) var(--sticky-ease),
+    transform  var(--sticky-time) var(--sticky-ease),
+    visibility 0s;
+}
+
+/* Nothing is hidden until the script has decided what the state should be, so
+   a visitor with no JS keeps a working button rather than losing it. */
+[data-sticky]:not([data-sticky-ready]) {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sticky] { transition: opacity .2s linear, visibility 0s linear .2s; }
+  [data-sticky].is-on { transition: opacity .2s linear, visibility 0s; }
+  [data-sticky],
+  [data-sticky].is-on { transform: none; }
+}
+
+
+/* ==========================================================================
+   20. ACCORDION MEDIA PANE  [data-acc-media]
+   --------------------------------------------------------------------------
+   One media pane beside an accordion. Opening a row swaps the pane to the
+   matching layer. Every layer is in the DOM from the start and they are
+   stacked on top of each other, so the swap is a crossfade with no reflow and
+   no network wait: the second image is already decoded by the time anybody
+   clicks.
+
+   STRUCTURE
+
+       [data-acc-scene]            the common parent of both columns
+         [data-acc-media]            the pane
+           > child                     layer 1
+           > child                     layer 2
+           > child                     layer 3
+         [data-acc]                  the accordion, section 2 as it is
+
+   The pane and the accordion find each other through the shared scene, so
+   there are no IDs to keep in sync. Layers match rows BY ORDER: first layer
+   to first row. Put the pane FIRST in the DOM and place it on the left with
+   grid, then on mobile it lands above the list, which is where it belongs on
+   a narrow screen.
+
+   TOKENS, set on [data-acc-scene] or on the pane
+
+       --accm-ratio    aspect ratio of the pane              default 1 / 1
+       --accm-radius   corner radius                         default 1rem
+       --accm-time     crossfade duration                    default --time-slow
+       --accm-rise     how far a layer travels as it enters  default 1.25rem
+       --accm-scale    how much it shrinks into place        default 1.04
+       --accm-top      sticky offset, desktop only           default 6rem
+
+   An explicit height set in Designer overrides --accm-ratio, which is the
+   usual way to size this in practice.
+
+   FLAGS
+
+       data-acc-sticky   on the scene: the pane stays put while the list
+                         scrolls past it. Desktop only, since on mobile the
+                         pane is above the list and sticking it would eat
+                         half the screen.
+
+   TWO THINGS THAT LOOK LIKE BUGS AND ARE NOT, both measured rather than
+   assumed, so nobody spends an afternoon "fixing" them again:
+
+     A grid sets align-items:stretch by default, which ought to stretch this
+     pane to the height of the accordion column and throw the aspect ratio
+     away. It does not. A box with a preferred aspect ratio and a definite
+     inline size takes its height from the ratio, and stretch does not apply.
+     Measured at 4/5: the pane reported 434 by 543, a ratio of exactly 0.800.
+     align-self:start is therefore NOT needed and adding it changes nothing.
+
+     Sticky inside a grid item is the other one. It works. With a 900px row
+     and a 543px pane the pane held still for 358px of scrolling and then
+     travelled, which is the 357px of slack inside its own grid area, correct
+     to a pixel. If the accordion column is SHORTER than the pane there is no
+     slack and sticky does nothing, which is also correct.
+   ========================================================================== */
+
+/* Declared at BOTH levels on purpose. An unresolved var() does not fall back,
+   it invalidates the WHOLE declaration it appears in, so if the scene
+   attribute is missing or sits on the wrong element the transition below is
+   thrown away entirely and the pane swaps instantly, in silence, with nothing
+   in the console. Either level supplying the tokens makes that impossible. */
+[data-acc-scene],
+[data-acc-media] {
+  --accm-time:   var(--time-slow, 600ms);
+  --accm-ease:   var(--ease-emphasis, cubic-bezier(.625, .05, 0, 1));
+  --accm-rise:   1.25rem;
+  --accm-scale:  1.04;
+  --accm-radius: 1rem;
+}
+
+[data-acc-media] {
+  position: relative;
+  aspect-ratio: var(--accm-ratio, 1 / 1);
+  overflow: hidden;
+  border-radius: var(--accm-radius);
+  background: var(--accm-bg, rgba(0, 0, 0, .04));
+
+  /* The layers carry their own stacking order and nothing outside should be
+     dragged into it. */
+  isolation: isolate;
+}
+
+/* Every direct child is a layer, whatever it is: an image, a video, a whole
+   card. Hidden ones are taken out of the accessibility tree and out of the
+   tab order by visibility, which opacity alone does not do. The visibility
+   transition is delayed by the full duration so the layer stays reachable
+   until the fade has actually finished. */
+[data-acc-media] > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(var(--accm-scale)) translateY(var(--accm-rise));
+  transition:
+    opacity    var(--accm-time) var(--accm-ease),
+    transform  var(--accm-time) var(--accm-ease),
+    visibility 0s linear var(--accm-time);
+}
+
+[data-acc-media] > [data-accm-on] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity   var(--accm-time) var(--accm-ease),
+    transform var(--accm-time) var(--accm-ease),
+    visibility 0s;
+}
+
+/* When a layer is a wrapper rather than the image itself, which is what a
+   Collection Item gives you, the picture inside still has to fill it. */
+[data-acc-media] > * :is(img, video) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Before the script has run, and on the Designer canvas where site code never
+   runs at all, show the first layer only. Without this the Designer shows all
+   three stacked and you cannot tell what you are editing. */
+[data-acc-media]:not([data-accm-ready]) > :first-child {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+@media (min-width: 992px) {
+  [data-acc-scene][data-acc-sticky] [data-acc-media] {
+    position: sticky;
+    top: var(--accm-top, 6rem);
+  }
+}
+
+/* Somebody who has asked for less motion still gets the swap, just without
+   anything travelling. A crossfade is information, the movement is decoration. */
+@media (prefers-reduced-motion: reduce) {
+  [data-acc-media] > *,
+  [data-acc-media] > [data-accm-on] {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   21. TABS WITH A VISUAL   [data-tabs="wrapper"]
+   --------------------------------------------------------------------------
+   The script owns height and opacity; this file owns the
+   resting states the eye reads: the progress bar on the open tab and the dim
+   on the others. Colours come from variables.css so the block follows the
+   brand without edits here.
+   ========================================================================== */
+[data-tabs="wrapper"] [data-tabs="content-item"] { cursor: pointer; }
+[data-tabs="wrapper"] [data-tabs="content-item"].active { cursor: default; }
+[data-tabs="wrapper"] [data-tabs="item-progress"] {
+  background-color: var(--color-ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--time-base) ease;
+}
+[data-tabs="wrapper"] [data-tabs="content-item"].active [data-tabs="item-progress"] {
+  transform: scaleX(1);
+}
+[data-tabs="wrapper"] [data-tabs="visual-item"] { will-change: opacity, transform; }
+
+
+/* ==========================================================================
+   22. LOGO WALL CYCLE   [data-logo-wall-cycle-init]
+   --------------------------------------------------------------------------
+   Twelve cells on screen, the rest of the list is the pool
+   the script draws from. Change the number here and in nothing else.
+   ========================================================================== */
+[data-logo-wall-list] [data-logo-wall-item]:nth-child(n+13) { display: none; }
+[data-logo-wall-item] { position: relative; overflow: hidden; }
+[data-logo-wall-target] { will-change: transform, opacity; }
+
+
+
+/* ==========================================================================
+   23. LOGO MARQUEE WITH A WAVE   [data-logo-marquee]
+   --------------------------------------------------------------------------
+   The loop is a CSS animation over a doubled row, so it runs on the
+   compositor. The wave is one custom property per card, --lm-lift, written
+   by the script; the spring-like curve here is what makes it read as a wave.
+   Room for the lift is made with padding on the window, so the raised card
+   is not clipped by its own overflow.
+   ========================================================================== */
+[data-logo-marquee] {
+  --lm-duration: 40s;
+  overflow: hidden;
+  padding-top: 1rem;
+  padding-bottom: 0.5rem;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%);
+}
+[data-logo-marquee-track] {
+  display: flex;
+  width: max-content;
+  animation: lm-loop var(--lm-duration) linear infinite;
+}
+[data-logo-marquee]:hover [data-logo-marquee-track] { animation-play-state: paused; }
+[data-logo-marquee-item] {
+  flex: none;
+  transform: translateY(calc(var(--lm-lift, 0px) * -1));
+  transition: transform .55s var(--cubic-bounce, cubic-bezier(.34, 1.56, .64, 1)),
+              background-color var(--time-quick, .2s) ease;
+}
+@keyframes lm-loop {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logo-marquee-track] { animation: none; }
+  [data-logo-marquee-item]  { transition: none; }
+}
