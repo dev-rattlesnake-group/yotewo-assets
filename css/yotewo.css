@@ -364,3 +364,14 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 .ev-rich ul,.ev-rich ol{margin-top:.5rem;margin-bottom:0;padding-left:1.25rem}
 .ev-rich li+li{margin-top:.25rem}
 .ev-speaker_ini{flex-shrink:0;width:2.75rem;height:2.75rem;border-radius:.5rem;background:#262a36;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.875rem;font-weight:500;letter-spacing:.02em}
+
+/* 87. Blog fixes (19 Nov). 1) Article step numbers restart after every h2: counter-reset on a sibling h2 nests a new counter in Chrome instead of resetting, so h2 uses counter-set. 2) Featured post cover keeps the card cover proportions (1600x984), so the line art is no longer cut to a strip. 3) Tables in the article body (Embed with a <table> inside the rich text): scroll sideways on small screens, light header row, thin row lines. */
+.blog-rich h2{counter-reset:none!important;counter-set:bstep 0}
+.blog-feature{align-items:center}
+.bc-cover.is-feature{aspect-ratio:1600/984;height:auto}
+.blog-rich .w-embed:has(table){overflow-x:auto;margin:1.5rem 0;-webkit-overflow-scrolling:touch}
+.blog-rich table{width:100%;min-width:32rem;border-collapse:collapse;font-size:.875rem;line-height:1.25rem}
+.blog-rich th,.blog-rich td{padding:.625rem .75rem;border-bottom:1px solid #e9eaec;text-align:left;vertical-align:top}
+.blog-rich th{font-weight:500;color:#0b0c0e;background:#f4f5f6}
+.blog-rich td{color:#5e636e}
+.blog-rich td strong{color:#0b0c0e;font-weight:500}
