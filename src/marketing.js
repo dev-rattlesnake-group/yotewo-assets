@@ -2609,6 +2609,15 @@ function initLogoWallCycle() {
       Math.round(a[2] + (b[2] - a[2]) * f) + ')';
   }
 
+  /* 19 Nov: a letter or word inside a differently coloured span (the grey
+     second line of a title, e.g. .blog-title_accent) lands on that span's
+     colour, not the title's, so grey words no longer flash black on load. */
+  function inkOf(node, host, el) {
+    if (!host || host === el || host.nodeType !== 1) return;
+    if (!host.__bgfxInk) host.__bgfxInk = getComputedStyle(host).color;
+    node.style.setProperty('--f', host.__bgfxInk);
+  }
+
   // Wrap every character in a span, keeping words unbreakable and inner markup intact
   function splitLetters(el) {
     var letters = [];
@@ -2680,6 +2689,7 @@ function initLogoWallCycle() {
 
     letters.forEach(function (l, i) {
       l.style.setProperty('--lc', paletteAt(pal, i / Math.max(1, n - 1)));
+      inkOf(l, l.parentNode.parentNode, el);
       l.style.animationDelay = (delay + i * stagger / 1000) + 's';
     });
     el.style.setProperty('--d', num(el.getAttribute('data-text-glow-duration'), 0.9) + 's');
@@ -2754,7 +2764,7 @@ function initLogoWallCycle() {
       if (!colors.length) colors = TEXT_COLORS[lightText ? 'onDark' : 'onLight'];
       var pal = colors.map(toRgb);
       el.style.setProperty('--f', 'rgb(' + fg.join(',') + ')');
-      words.forEach(function (w, i) { w.style.setProperty('--lc', paletteAt(pal, i / Math.max(1, n - 1))); });
+      words.forEach(function (w, i) { w.style.setProperty('--lc', paletteAt(pal, i / Math.max(1, n - 1))); inkOf(w, w.parentNode, el); });
       el.classList.add('bgfx-tint');
     }
     el.style.setProperty('--d', num(el.getAttribute('data-text-reveal-duration'), 0.8) + 's');
@@ -5647,6 +5657,18 @@ function initBlog() {
   if (list) {
     var cards = [].slice.call(list.querySelectorAll("[data-blog-card]"));
     var feature = document.querySelector(".blog-feature");
+    /* 19 Nov: the grid lists every post (no Featured filter in Webflow), so a
+       post never disappears when two are switched to Featured. The one shown
+       in the featured block is dropped from the grid here. */
+    if (feature) {
+      var slugOf = function (a) { return a ? (a.getAttribute("href") || "").replace(/[?#].*$/, "").replace(/\/$/, "") : ""; };
+      var fSlug = slugOf(feature.matches("a[href]") ? feature : feature.querySelector("a[href]"));
+      if (fSlug) cards = cards.filter(function (c) {
+        if (slugOf(c.matches("a[href]") ? c : c.querySelector("a[href]")) !== fSlug) return true;
+        (c.closest(".w-dyn-item") || c).remove();
+        return false;
+      });
+    }
     var divider = document.querySelector(".blog-divider");
     var pills = [].slice.call(document.querySelectorAll("[data-blog-filter]"));
     var search = document.querySelector("[data-blog-search]");
