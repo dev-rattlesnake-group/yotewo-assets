@@ -381,3 +381,6 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 
 /* 89. iOS Safari: a widget layer faded out with opacity 0 (process stage pictures switching steps) still painted the top edge of its glass cards' backdrop blur as a thin coloured line over the active picture (client 25 Nov, Matching step on phones). Hidden layers drop the backdrop blur. */
 .lw-host[style*="opacity: 0"] *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* 90. Hire page chat (skills-hero-chat): the arrow sat at a fixed left offset at the top of each candidate row, so on phones it floated over empty space next to the rate (client 25 Nov). Pinned to the right edge, vertically centred. */
+.lw-skills-hero-chat .ar{left:auto!important;right:calc(14*var(--u))!important;top:50%!important;translate:0 -50%}
