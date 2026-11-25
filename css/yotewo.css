@@ -375,3 +375,6 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 .blog-rich th{font-weight:500;color:#0b0c0e;background:#f4f5f6}
 .blog-rich td{color:#5e636e}
 .blog-rich td strong{color:#0b0c0e;font-weight:500}
+
+/* 88. Header: Webflow's default current-page colour (#0082f3) on the top nav link (e.g. "For engineers" on /find-jobs). Keep the header ink, client 25 Nov. */
+.nav-item.w--current{color:inherit}
