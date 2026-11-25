@@ -384,3 +384,7 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 
 /* 90. Hire page chat (skills-hero-chat): the arrow sat at a fixed left offset at the top of each candidate row, so on phones it floated over empty space next to the rate (client 25 Nov). Pinned to the right edge, vertically centred. */
 .lw-skills-hero-chat .ar{left:auto!important;right:calc(14*var(--u))!important;top:50%!important;translate:0 -50%}
+
+/* 91. Event covers (25 Nov): the new Figma covers are 1600x984 with the title and date at the bottom left. The list image had a fixed height (10rem, 12rem on phones) and the event page a 1280/456 frame, so on phones and on the event page the date was cut off. Both now keep the cover ratio; the event page cover is capped at 48rem wide. */
+.ev-row_img{height:auto!important;aspect-ratio:1600/984}
+.ev-cover{aspect-ratio:1600/984;height:auto;max-width:48rem}
