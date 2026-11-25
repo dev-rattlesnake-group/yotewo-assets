@@ -5430,6 +5430,12 @@ function initPodCovers() {
     txt.appendChild(ttl);
 
     c.classList.add("is-drawn");
+    /* Client, 25 Nov 2026: covers move like the glows elsewhere. Shared WebGL
+       glow (section 25) in the podcast pastels (lavender, peach, rose) over
+       .pc-bg, under the lines and text (yotewo.css block 94). */
+    c.setAttribute("data-glow-bg", "");
+    c.setAttribute("data-glow-colors", "#b7a3d9,#f2c4a6,#e6a6bf,#c7b3e6");
+    c.setAttribute("data-glow-gain", "0.8");
     var r = c.getBoundingClientRect();
     if (r.width && r.height / r.width > 0.8) c.classList.add("is-square");
     c.insertBefore(bg, c.firstChild);
@@ -5551,6 +5557,12 @@ function initBlogCovers() {
       wrap.appendChild(txt);
     }
     wrap.classList.add("is-drawn");
+    /* Client, 25 Nov 2026: covers move like the glows elsewhere. The shared
+       WebGL glow (section 25, default palette: slate, mauve, peach, rose, as
+       the Figma blog gradient) over the gradient picture, under the lines
+       and text (yotewo.css block 94). */
+    wrap.setAttribute("data-glow-bg", "");
+    wrap.setAttribute("data-glow-gain", "0.9");
   });
   if (PREFERS_STILL || !window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
   document.addEventListener("pointermove", function (e) {
