@@ -5568,6 +5568,113 @@ function initBlogCovers() {
 }
 
 /* ==========================================================================
+   EVENT COVERS LIVE  img.ev-row_img, img.ev-cover, .ev-feature_visual
+   ==========================================================================
+   Client, 25 Nov 2026: event covers follow cover variant B of the Figma
+   file 09p2EddPxPpoQyvPIkMB7L (110:642 and the four next to it) and move
+   like the glows elsewhere instead of being flat pictures. Each cover image
+   is wrapped in .evc: the B gradient (yotewo.css block 93), the shared
+   WebGL glow (section 25) in the B blues and mauves, the logo outline of
+   the Figma cover (vector 110:721 at its own position and angle, white 10%),
+   "Events" top right and the title with "date · city" bottom left, all in
+   cover units (1600 wide). The CMS image stays inside, invisible, for its
+   alt text; og:image still uses the uploaded PNG. The featured card keeps
+   its headline and gets the same gradient, glow colours and outline. Runs
+   before initGlowBg so the glow picks up the colours. */
+var EVC_D = "M1800.2 348.4C1979.2 110 2339.9 62.4 2503.3 65.9C2421.6 90.8 2237 156.8 2109.1 242C1949.4 348.4 1896.1 561.3 1640.4 1019.1C1384.8 1476.8 1267.6 1402.3 1054.6 1402.3C901.2 1385.3 703 1232 628.5 1029.7C607.7 900.8 613.6 794.3 622.6 702.4C574.3 672.5 523.2 639.7 468.7 603.9C313.6 501.9 290.1 405.2 280.2 337.3C200 352.1 107.2 349.6 0 284.5C278.9 204 266.4 242.8 280.2 337.3C422.9 310.8 525.3 229.3 596.5 348.4C657.9 451.1 636.6 559.1 622.6 702.4C933.1 894.9 1123 967.3 1288.9 944.6C1491.6 916.8 1576.5 646.5 1800.2 348.4ZM1286.7 2219.3L2503.2 65.8C2422 69.3 2285.9 103.8 2140.1 210.6C2066.6 271.1 1991.5 348.7 1916.3 429.9C1844.9 522.7 1775.7 636.9 1713.6 776.8C1644.5 937.4 1576.3 1054.8 1510.8 1139.9C1331.6 1400.8 1101.8 1369.8 1009.3 1321.7C1016.4 1383.9 1049.8 1563.9 1126.7 1786.2C1203.5 2008.4 1265.4 2167.6 1286.7 2219.3ZM1151.8 731C1352.7 731 1515.6 567.4 1515.6 365.5C1515.6 163.6 1352.7 0 1151.8 0C950.9 0 788 163.6 788 365.5C788 567.4 950.9 731 1151.8 731Z";
+var EVC_GLOW = "#5b78b0,#9a6a96,#4f6aa6,#b07fa3";
+function evcLines() {
+  var NS = "http://www.w3.org/2000/svg";
+  var s = document.createElementNS(NS, "svg");
+  s.setAttribute("class", "evc-lines");
+  s.setAttribute("viewBox", "0 0 1600 984");
+  s.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  s.setAttribute("aria-hidden", "true");
+  var g = document.createElementNS(NS, "g");
+  g.setAttribute("transform", "matrix(0.99442 -0.1055 0.1055 0.99442 -21.96 106)");
+  var p = document.createElementNS(NS, "path");
+  p.setAttribute("d", EVC_D);
+  p.style.cssText = "fill:none;stroke:rgba(255,255,255,.1);stroke-width:1px;stroke-linejoin:round;vector-effect:non-scaling-stroke";
+  g.appendChild(p);
+  s.appendChild(g);
+  requestAnimationFrame(function () {
+    var w = s.getBoundingClientRect().width;
+    p.style.strokeWidth = Math.max(1, (3.04 * w) / 1600).toFixed(2) + "px";
+  });
+  return s;
+}
+function initEventCovers() {
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function shortDate(txt) {
+    var m = (txt || "").match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})/);
+    if (!m) return "";
+    var i = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].indexOf(m[1]);
+    return +m[2] + " " + MON[i] + " " + m[3];
+  }
+  function city(txt) { return ((txt || "").split(",")[0] || "").trim() || "London"; }
+  function glow(el) {
+    el.setAttribute("data-glow-bg", "");
+    el.setAttribute("data-glow-colors", EVC_GLOW);
+    el.setAttribute("data-glow-gain", "0.9");
+    el.setAttribute("data-glow-reach", "3.2");
+  }
+  var cur = document.querySelector("[data-ev-current]");
+  var curSlug = cur ? cur.getAttribute("data-ev-current") : "";
+  [].slice.call(document.querySelectorAll("img.ev-row_img, img.ev-cover")).forEach(function (img) {
+    if (img.__evc || (img.parentNode && img.parentNode.classList.contains("evc"))) return;
+    img.__evc = 1;
+    var title = "", when = "", place = "";
+    var row = img.closest(".ev-row");
+    if (row) {
+      var t = row.querySelector(".ev-row_title"), meta = row.querySelector("[data-ev-start]"), b = row.querySelector(".ev-badge");
+      title = t ? t.textContent : "";
+      when = shortDate(meta ? meta.getAttribute("data-ev-start") : "");
+      place = city(b ? b.textContent : "");
+    } else {
+      var h = document.querySelector("h1");
+      title = img.getAttribute("alt") || (h ? h.textContent : "");
+      var sd = document.querySelector(".ev-side_date");
+      when = shortDate(sd ? sd.textContent : "");
+      var other = curSlug && document.querySelector('[data-ev-slug="' + curSlug + '"]');
+      var ob = other && other.parentNode.querySelector(".ev-badge");
+      place = city(ob ? ob.textContent : "");
+    }
+    title = title.replace(/\s+/g, " ").trim();
+    var w = document.createElement("div");
+    w.className = "evc " + img.className;
+    img.parentNode.insertBefore(w, img);
+    w.appendChild(img);
+    w.appendChild(evcLines());
+    var lab = document.createElement("div");
+    lab.className = "evc-label";
+    lab.setAttribute("aria-hidden", "true");
+    lab.textContent = "Events";
+    var tx = document.createElement("div");
+    tx.className = "evc-text";
+    tx.setAttribute("aria-hidden", "true");
+    var s1 = document.createElement("span");
+    s1.textContent = title;
+    tx.appendChild(s1);
+    if (when) {
+      var s2 = document.createElement("span");
+      s2.className = "evc-when";
+      s2.textContent = when + " \u00b7 " + place;
+      tx.appendChild(s2);
+    }
+    w.appendChild(lab);
+    w.appendChild(tx);
+    glow(w);
+  });
+  [].slice.call(document.querySelectorAll(".ev-feature_visual")).forEach(function (v) {
+    if (v.__evc) return;
+    v.__evc = 1;
+    v.classList.add("evc-b");
+    v.insertBefore(evcLines(), v.firstChild);
+    glow(v);
+  });
+}
+
+/* ==========================================================================
    36. BLOG  [data-blog-list] [data-blog-body]
    ==========================================================================
    Index: topic pills, search and pagination over the CMS cards, client side.
@@ -9278,6 +9385,7 @@ onReady(() => {
   initFullRows();
   initLogoWall();
   initRevealGroups();
+  initEventCovers();
   initGlowBg();
   initSegmented();
   initProcessSteps();
