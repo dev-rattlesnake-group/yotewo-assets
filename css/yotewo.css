@@ -316,7 +316,7 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 
 /* 80. 16 Nov 2026: on phones the copy of a mesh card ended on the glow line
    at the bottom of the card; more room under it. */
-@media screen and (max-width:767px){.div-uneven-card.has-mesh{padding-bottom:4rem}}
+@media screen and (max-width:767px){.div-uneven-card.has-mesh,.div-uneven-card.is-gradient{padding-bottom:4rem}} /* 25 Nov: has-mesh is only added on hover devices, so phones never got the padding; is-gradient covers them */
 
 /* 81. 16 Nov 2026: "Set team capacity" (why-adaptive): the two cards behind
    were thin strips under the dialog and read as cut-off cards. They are now
