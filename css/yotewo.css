@@ -378,3 +378,6 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 
 /* 88. Header: Webflow's default current-page colour (#0082f3) on the top nav link (e.g. "For engineers" on /find-jobs). Keep the header ink, client 25 Nov. */
 .nav-item.w--current{color:inherit}
+
+/* 89. iOS Safari: a widget layer faded out with opacity 0 (process stage pictures switching steps) still painted the top edge of its glass cards' backdrop blur as a thin coloured line over the active picture (client 25 Nov, Matching step on phones). Hidden layers drop the backdrop blur. */
+.lw-host[style*="opacity: 0"] *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
