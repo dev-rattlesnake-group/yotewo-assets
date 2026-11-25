@@ -392,3 +392,15 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 /* 92. Back links under the floating header (25 Nov): on tablets and phones the event page "Back to events" (.ev-back) had no top margin and sat under the header; case studies, blog and glossary (.cs-back) already get 2.5rem there. Same margin for .ev-back; the careers role link ([data-career-back]) touched the header bottom on phones and gets 1.25rem. */
 @media screen and (max-width:991px){.ev-back{margin-top:2.5rem}}
 @media screen and (max-width:767px){[data-career-back]{margin-top:1.25rem}}
+
+/* 93. Live event covers (25 Nov, marketing.js initEventCovers): .evc wraps each event cover image (list and event page) and takes its size from the image classes (block 91). Variant B gradient of the Figma covers under the shared WebGL glow; logo outline, "Events" and title / date in cover units (cqw of a 1600 wide cover). The CMS image stays inside, invisible. The featured card (.ev-feature_visual.evc-b) gets the same gradient. A glow that cannot start (no WebGL) leaves the gradient as it is. */
+.evc{position:relative;overflow:hidden;isolation:isolate;container-type:inline-size;display:block}
+.evc,.ev-feature_visual.evc-b{background:radial-gradient(42% 60% at 22% 72%,#4f6aa6 0%,rgba(79,106,166,.55) 40%,rgba(79,106,166,0) 75%),radial-gradient(45% 55% at 48% 40%,#8a5d84 0%,rgba(138,93,132,0) 75%),radial-gradient(40% 55% at 85% 80%,#7a5068 0%,rgba(122,80,104,0) 75%),radial-gradient(35% 45% at 2% 98%,#07060a 0%,rgba(7,6,10,0) 80%),radial-gradient(40% 50% at 70% 8%,#3e2a3a 0%,rgba(62,42,58,0) 80%),linear-gradient(135deg,#7d5574 0%,#5c3d55 35%,#4a3550 60%,#5a3f57 100%)!important}
+.evc .glow-bg,.ev-feature_visual.evc-b .glow-bg{background:transparent!important}
+.evc .glow-bg.is-fallback,.ev-feature_visual.evc-b .glow-bg.is-fallback{display:none}
+.evc>img{position:absolute!important;inset:0;width:100%!important;height:100%!important;max-width:none!important;margin:0!important;opacity:0;pointer-events:none}
+.evc-lines{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.evc-label{position:absolute;right:6.1%;top:9.7%;z-index:2;color:#fff;font-family:Inter,system-ui,sans-serif;font-weight:500;font-size:2.75cqw;line-height:1.53;letter-spacing:-.0625cqw}
+.evc-text{position:absolute;left:5.33%;right:29.9%;bottom:13.5%;z-index:2;color:#fff;font-family:Inter,system-ui,sans-serif;font-weight:500;font-size:5.5cqw;line-height:1.136;letter-spacing:-.25cqw}
+.evc-text span{display:block}
+.evc-text .evc-when{opacity:.5}
