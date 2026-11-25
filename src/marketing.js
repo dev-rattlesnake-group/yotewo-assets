@@ -8239,6 +8239,7 @@ function lwChatForPage(layer) {
   });
   var idx = Object.keys(LW_CHAT_PAGES).indexOf(m[1]);
   [].slice.call(layer.querySelectorAll(".rl")).forEach(function (rl, i) {
+    var role = cfg[1][i] || rl.textContent;
     var p = LW_CHAT_PEOPLE[idx * 3 + i], rw = rl.closest(".rw") || rl.parentNode.parentNode;
     if (!p || !rw) return;
     var av = rw.querySelector(".lw-av"), nm = rw.querySelector(".nm");
@@ -8247,7 +8248,11 @@ function lwChatForPage(layer) {
       if (n.nodeType === 3 && n.nodeValue.trim()) { n.nodeValue = p; return true; }
       return false;
     });
-    var rate = 38 + ((idx * 7 + i * 11) % 36);
+    /* Rate follows the level in the role (client 25 Nov: a Senior at £38 next
+       to a mid-level engineer at £60 read wrong): Lead/Principal/Head/Staff/CTO/Architect
+       £63-74, Senior £51-62, others £38-49. */
+    var lv = /\b(lead|principal|head|staff|cto|architect|director)\b/i.test(role || "") ? 2 : /\bsenior\b/i.test(role || "") ? 1 : 0;
+    var rate = [38, 51, 63][lv] + ((idx * 7 + i * 5) % 12);
     var w = document.createTreeWalker(rw, NodeFilter.SHOW_TEXT, null), n;
     while ((n = w.nextNode())) if (/\u00a3\d/.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/\u00a3[\d.,]+/, "\u00a3" + rate);
   });
