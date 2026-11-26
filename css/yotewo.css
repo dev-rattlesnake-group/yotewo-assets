@@ -411,3 +411,12 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 
 /* 95. Blog cards without a CMS cover image (26 Nov: new posts "types-of-ai-engineers" and "hiring-engineers-for-retail-businesses" have none). The card cover is drawn by script (gradient, glow, outline, text) and only took its height from the image; an empty image is display:none, so the cover collapsed to 0. The wrapper now keeps the card ratio itself. */
 .bc-cover:not(.is-feature):has(>img.w-dyn-bind-empty){aspect-ratio:386/237;width:100%}
+
+/* 96. Client batch 25 Nov. Featured event and featured podcast covers are blank like the featured blog cover (gradient, glow and outline only; the title and date sit next to them). The featured event is not repeated in the list below (marketing.js initEvents marks its row .ev-dup). Find Jobs "Engagement terms" widget enters with a short rise and a smaller hover lift. */
+.ev-feature_visual .ev-feature_headline,.ev-feature_visual .ev-portraits,.pod-feature .pc-text{display:none!important}
+.ev-dup{display:none!important}
+.lw.lw-anim.lw-jobs-why-contract:not(.is-in) .lw-stage{translate:0 calc(5*var(--u))}
+.lw-jobs-why-contract .cc[data-fx~="lift"]{--d:-1.5!important}
+/* Process step pictures ("UI shots" next to the vertical progress line, Find Jobs, Refer a client, Sell your agency): a true cross-fade. The old picture faded out in .2s while the new one only started at .15s, so for a moment both were nearly transparent and the switch looked like a stutter. Now the new one fades in on top and the old one stays until it is covered. */
+.div-process-media .img-process{transition:opacity .25s ease .35s;z-index:0}
+.div-process-media .img-process.is-active{transition:opacity .35s cubic-bezier(.22,1,.36,1);z-index:1}
