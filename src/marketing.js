@@ -3801,6 +3801,9 @@ function initGlowBg() {
       m.style.backgroundColor = "#000";
       if (getComputedStyle(m).position === "static") m.style.position = "relative";
     });
+    /* Engagement models media box (home): the glow rose only a third of the
+       box and the widget floated over a dark gap (client, 26 Nov). */
+    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.4"); });
     /* Contexts are created only when a glow comes near the viewport, so pages
        with many glow cards (case studies slider) do not open them all at once. */
     var all = [].slice.call(document.querySelectorAll("[data-glow-bg]"));
