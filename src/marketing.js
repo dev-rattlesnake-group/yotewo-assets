@@ -3802,8 +3802,10 @@ function initGlowBg() {
       if (getComputedStyle(m).position === "static") m.style.position = "relative";
     });
     /* Engagement models media box (home): the glow rose only a third of the
-       box and the widget floated over a dark gap (client, 26 Nov). */
-    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.4"); });
+       box and drifted to one corner (mirrored variant), so the widget floated
+       over a dark gap (client, 26 Nov). Centred variant as in the process
+       blocks, and a longer reach so it lights the bottom of the card. */
+    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.8"); m.setAttribute("data-glow-variant", "0"); });
     /* Contexts are created only when a glow comes near the viewport, so pages
        with many glow cards (case studies slider) do not open them all at once. */
     var all = [].slice.call(document.querySelectorAll("[data-glow-bg]"));
@@ -8668,12 +8670,17 @@ function initLiveWidgets() {
     /* Scroll-driven stacks (section 29): the layer follows its image's
        is-active state, so only the current step's widget shows. */
     if (img.hasAttribute("data-process-image")) {
+      /* Client batch 25-26 Nov (lag on step switch): the widgets are see-through
+         glass, so a cross-fade showed both at half strength on top of each
+         other. The old widget now leaves quickly and the new one comes in
+         right after it, above it. */
       var sync = function () {
         var on = img.classList.contains("is-active");
+        layer.style.transition = on ? "opacity .38s cubic-bezier(.22,1,.36,1) .14s" : "opacity .16s ease";
+        layer.style.zIndex = on ? "2" : "1";
         layer.style.opacity = on ? "" : "0";
         layer.style.pointerEvents = on ? "auto" : "none";
       };
-      layer.style.transition = "opacity " + (getComputedStyle(img).transitionDuration.split(",")[0] || ".4s");
       sync();
       new MutationObserver(sync).observe(img, { attributes: true, attributeFilter: ["class"] });
     }
