@@ -2315,6 +2315,20 @@ function initLogoWallCycle() {
     if (this.eggs.length > 12) this.eggs.shift();
     (this.rings = this.rings || []).push({ x: x, y: y, r: 0, life: 1 });
     if (this.rings.length > 6) this.rings.shift();
+    /* Client, 26 Nov ("as in the example, but on click"): the glyphs around
+       the click fly apart from it, brighter, and settle back. The cells in
+       the radius light up first so there is something to scatter. */
+    (this.bursts = this.bursts || []).push({ x: x, y: y, t: 0, e: 0 });
+    if (this.bursts.length > 4) this.bursts.shift();
+    var BR = 150, cw = this.cw, ch = this.ch, life = this.life, heat = this.heat, seed = this.seed;
+    var c0 = Math.max(0, Math.floor((x - BR) / cw)), c1 = Math.min(this.cols - 1, Math.ceil((x + BR) / cw));
+    var r0 = Math.max(0, Math.floor((y - BR) / ch)), r1 = Math.min(this.rows - 1, Math.ceil((y + BR) / ch));
+    for (var r = r0; r <= r1; r++) for (var c = c0; c <= c1; c++) {
+      var ddx = c * cw + cw / 2 - x, ddy = r * ch + ch / 2 - y, dd = Math.sqrt(ddx * ddx + ddy * ddy);
+      if (dd >= BR) continue;
+      var k = 1 - dd / BR, ci = r * this.cols + c;
+      if (seed[ci] < 0.25 + 0.6 * k && life[ci] < 0.5 + 0.7 * k) { life[ci] = 0.5 + 0.7 * k; heat[ci] = 1; this.glyph[ci] = this.pick(ci); }
+    }
     if (!this.raf) this.raf = requestAnimationFrame(this._tick);
   };
 
@@ -2338,10 +2352,10 @@ function initLogoWallCycle() {
       ctx.strokeStyle = this.fg;
       for (var q = rings.length - 1; q >= 0; q--) {
         var rg = rings[q];
-        rg.r += 7 - rg.r * 0.035;
-        rg.life -= 0.035;
+        rg.r += 8.7;
+        rg.life -= 0.025;
         if (rg.life <= 0) { rings.splice(q, 1); continue; }
-        ctx.globalAlpha = rg.life * rg.life * 0.35;
+        ctx.globalAlpha = rg.life * 0.4;
         ctx.beginPath();
         ctx.arc(rg.x, rg.y, rg.r, 0, 6.2832);
         ctx.stroke();
@@ -2530,6 +2544,15 @@ function initLogoWallCycle() {
     ctx.textBaseline = 'middle';
 
     var alive = false, scr = this.word.length ? 0 : this.scramble, hasPal = this.pal.length > 0;
+    /* Click scatter (see egg): out fast (6 frames), back over ~45 frames. */
+    var bursts = this.bursts || [];
+    for (var bi = bursts.length - 1; bi >= 0; bi--) {
+      var bu = bursts[bi];
+      bu.t++;
+      bu.e = bu.t < 6 ? bu.t / 6 : Math.pow(Math.max(0, 1 - (bu.t - 6) / 45), 2);
+      if (bu.t > 51) bursts.splice(bi, 1);
+    }
+    var nb = bursts.length;
     for (i = 0; i < life.length; i++) {
       var l = life[i];
       if (l <= 0) continue;
@@ -2548,6 +2571,25 @@ function initLogoWallCycle() {
       }
       ctx.globalAlpha = (l > 1 ? 1 : l) * this.opacity;
       if (this.eggs.length && this.underEgg(x, y)) { life[i] = l - this.decay * 4; continue; }
+      if (nb) {
+        var gx = x, gy = y, push = 0;
+        for (var bj = 0; bj < nb; bj++) {
+          var bb = bursts[bj], bdx = x - bb.x, bdy = y - bb.y, bd = Math.sqrt(bdx * bdx + bdy * bdy);
+          if (bd >= 150 || !bb.e) continue;
+          var pw = (150 - bd) / 150 * bb.e;
+          bd = bd || 1;
+          gx += bdx / bd * pw * 55;
+          gy += bdy / bd * pw * 38;
+          if (pw > push) push = pw;
+        }
+        if (push) {
+          ctx.globalAlpha = Math.min(1, (l > 1 ? 1 : l) * this.opacity * (1 + push * 1.5));
+          if (hasPal) ctx.fillStyle = this.tint(x, push);
+          ctx.fillText(this.glyph[i], gx, gy);
+          life[i] = l - this.decay;
+          continue;
+        }
+      }
       ctx.fillText(this.glyph[i], x, y);
       life[i] = l - this.decay;
     }
@@ -2555,7 +2597,7 @@ function initLogoWallCycle() {
     this.drawEggs(ctx);
 
     // Keep running while hovered, while drops fall or while glyphs are still fading out
-    if (alive || this.inside || ambOn || drops.length || this.eggs.length || (this.rings && this.rings.length)) this.raf = requestAnimationFrame(this._tick);
+    if (alive || this.inside || ambOn || drops.length || this.eggs.length || (this.rings && this.rings.length) || nb) this.raf = requestAnimationFrame(this._tick);
   };
 
   /* ---------- Text glow ----------
