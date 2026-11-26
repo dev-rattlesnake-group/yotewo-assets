@@ -2291,121 +2291,80 @@ function initLogoWallCycle() {
     return out;
   };
   Glyphs.prototype.egg = function (e) {
-    /* Client call 24 Nov: clicks must always work. A new click sends the lines
-       already on screen straight to their exit (no drips, so rapid clicks stay
-       light) and shows the new one; at most 3 lines exist at once. */
+    /* Client batch 26 Nov, after the "matrix" reference they sent: a click
+       snaps the line out at the cursor (quick fade-in plus a thin ring from
+       the click), then the line floats away slowly and fades over about five
+       seconds. Earlier lines are not cut short, they keep drifting, so many
+       clicks build a cloud of lines that thin out on their own (up to 12).
+       Each line is one fillText per frame, no blur filter and no per-letter
+       work, so rapid clicking stays smooth. */
     var rect = this.el.getBoundingClientRect();
     var ox = rect.left + this.el.clientLeft, oy = rect.top + this.el.clientTop;
     var x = e.clientX - ox, y = e.clientY - oy;
-    /* Client batch 25 Nov (Eldar): when lines pile up they scatter. Each line
-       already on screen breaks into its letters, which fly away from the new
-       click with a little spin and fade out in about half a second. */
-    for (var q = 0; q < this.eggs.length; q++) {
-      var og = this.eggs[q];
-      if (og.sc || !og.w) { og.quiet = 1; continue; }
-      og.quiet = 1; og.sc = 1; og.v = [];
-      var lx = og.x0;
-      for (var m = 0; m < og.s.length; m++) {
-        var mx = lx + og.adv[m] / 2 - x, my = og.y - y, dd = Math.sqrt(mx * mx + my * my) || 1;
-        var sp = 30 + Math.random() * 50;
-        og.v.push([mx / dd * sp + (Math.random() - .5) * 40, my / dd * sp + (Math.random() - .5) * 40 - 10, (Math.random() - .5) * 1.6]);
-        lx += og.adv[m];
-      }
-    }
-    var s = Array.from(EGGS[eggAt % EGGS.length]);
+    var s = EGGS[eggAt % EGGS.length];
+    eggAt++;
     var ctx = this.ctx, fs = Math.round(this.size * 1.05);
     ctx.font = '500 ' + fs + 'px ' + this.font;
-    var adv = s.map(function (c) { return ctx.measureText(c).width; });
-    var w = adv.reduce(function (p, q) { return p + q; }, 0);
-    /* Client, 15 Nov 2026 (late, final word): the line always appears exactly
-       on the cursor, centred on the click, whatever is under it. Only the
-       canvas edge can move it. */
-    var pick = [Math.max(12, Math.min(this.w - w - 12, x - w / 2)), Math.max(fs, Math.min(this.h - fs, y))];
-    eggAt++;
-    this.eggs.push({ s: s, x: pick[0] + w / 2, y: pick[1], t: 0, w: w, adv: adv, x0: pick[0] });
-    if (this.eggs.length > 3) this.eggs.shift();
+    var w = ctx.measureText(s).width;
+    var x0 = Math.max(12, Math.min(this.w - w - 12, x - w / 2)), y0 = Math.max(fs, Math.min(this.h - fs, y));
+    this.eggs.push({
+      s: s, w: w, x0: x0, y: y0, t: 0, life: 1,
+      vx: (Math.random() * 16 - 8) / 60,
+      vy: -(6 + Math.random() * 10) / 60
+    });
+    if (this.eggs.length > 12) this.eggs.shift();
+    (this.rings = this.rings || []).push({ x: x, y: y, r: 0, life: 1 });
+    if (this.rings.length > 6) this.rings.shift();
     if (!this.raf) this.raf = requestAnimationFrame(this._tick);
   };
 
-  /* Easter egg drawing (client 14 Nov: "pop out, premium, in the site's
-     style"). The line is set as real text at the field's own size, not on the glyph
-     grid, and fades in as a whole (14 Nov: smaller, fade, not letter by
-     letter), rising a few pixels out of a soft blur (ease-out-expo), lit
-     with the site's glow palette across the line, then settling into the
-     base ink. After a hold it fades out the same way and a few glyph
-     columns drip from where it was. Glyphs of the field under
-     the line step aside while it is shown. */
-  var EGG_IN = 30, EGG_GAP = 0, EGG_HOLD = 170, EGG_OUT = 36;
+  var EGG_LIFE = 60 * 5.2;
   function expo(x) { return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x); }
 
+  /* Glyphs of the field step aside under the newest lines only (cheap). */
   Glyphs.prototype.underEgg = function (x, y) {
-    for (var k = 0; k < this.eggs.length; k++) {
-      var g = this.eggs[k];
-      if (g.w && x > g.x0 - 10 && x < g.x0 + g.w + 10 && Math.abs(y - g.y) < this.ch * 0.9) return true;
+    var eggs = this.eggs;
+    for (var k = eggs.length - 1, n = 0; k >= 0 && n < 4; k--, n++) {
+      var g = eggs[k];
+      if (g.life > 0.35 && x > g.x0 - 8 && x < g.x0 + g.w + 8 && Math.abs(y - g.y) < this.ch * 0.8) return true;
     }
     return false;
   };
 
   Glyphs.prototype.drawEggs = function (ctx) {
-    var eggs = this.eggs;
-    if (!eggs.length) return;
+    var eggs = this.eggs, rings = this.rings;
+    if (rings && rings.length) {
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = this.fg;
+      for (var q = rings.length - 1; q >= 0; q--) {
+        var rg = rings[q];
+        rg.r += 7 - rg.r * 0.035;
+        rg.life -= 0.035;
+        if (rg.life <= 0) { rings.splice(q, 1); continue; }
+        ctx.globalAlpha = rg.life * rg.life * 0.35;
+        ctx.beginPath();
+        ctx.arc(rg.x, rg.y, rg.r, 0, 6.2832);
+        ctx.stroke();
+      }
+    }
+    if (!eggs.length) { ctx.globalAlpha = 1; return; }
     var fs = Math.round(this.size * 1.05);
     ctx.font = '500 ' + fs + 'px ' + this.font;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     for (var k = eggs.length - 1; k >= 0; k--) {
-      var g = eggs[k], s = g.s, n = s.length;
+      var g = eggs[k];
       g.t++;
-      if (!g.w) {
-        g.adv = s.map(function (c) { return ctx.measureText(c).width; });
-        g.w = g.adv.reduce(function (a, b) { return a + b; }, 0);
-        g.x0 = Math.max(12, Math.min(this.w - g.w - 12, g.x - g.w / 2));
-        g.y = Math.max(fs, Math.min(this.h - fs, g.y));
-      }
-      var outAt = n * EGG_GAP + EGG_IN + EGG_HOLD, done = true, cx = g.x0;
-      if (g.sc) {
-        /* Scatter (see egg): letters fly apart from the new click and fade. */
-        var sp2 = Math.min(1, g.sc++ / 34), ez = expo(sp2), fa = Math.min(1, Math.max(0, g.t - 1) / EGG_IN) * (1 - sp2) * (1 - sp2);
-        ctx.fillStyle = this.fg;
-        for (var j2 = 0; j2 < n; j2++) {
-          if (s[j2] !== ' ' && fa > 0.01) {
-            var vv = g.v[j2];
-            ctx.globalAlpha = fa * 0.92;
-            ctx.save();
-            ctx.translate(cx + g.adv[j2] / 2 + vv[0] * ez, g.y + vv[1] * ez);
-            ctx.rotate(vv[2] * ez);
-            ctx.fillText(s[j2], -g.adv[j2] / 2, 0);
-            ctx.restore();
-          }
-          cx += g.adv[j2];
-        }
-        if (sp2 >= 1) eggs.splice(k, 1);
-        continue;
-      }
-      for (var j = 0; j < n; j++) {
-        var lt = g.t - j * EGG_GAP, a = expo(Math.max(0, lt) / EGG_IN), dy = (1 - a) * 5, bl = (1 - a) * 4;
-        var ot = g.t - outAt - j * EGG_GAP * 0.6;
-        if (ot > 0) {
-          var b = Math.min(1, ot / EGG_OUT);
-          a *= 1 - b * b; dy = -b * 4; bl = b * 3;
-          if (!g.quiet && !g['d' + j] && ot > EGG_OUT * 0.5 && s[j] !== ' ' && Math.random() < 0.18) {
-            g['d' + j] = 1;
-            this.drop(Math.floor((cx + g.adv[j] / 2) / this.cw), Math.floor(g.y / this.ch) + 1, 0.45);
-          }
-        }
-        if (ot < EGG_OUT) done = false;
-        if (a > 0.01 && s[j] !== ' ') {
-          /* Glow colour sweeps along the line while it types, then settles. */
-          var heat = this.pal.length ? Math.max(0, 1 - Math.max(0, lt - EGG_IN * 0.4) / 70) : 0;
-          ctx.fillStyle = heat > 0 ? this.tint(cx, heat * (2 - heat)) : this.fg;
-          ctx.globalAlpha = a * 0.92;
-          if (bl > 0.3) ctx.filter = 'blur(' + bl.toFixed(1) + 'px)';
-          ctx.fillText(s[j], cx, g.y + dy);
-          if (bl > 0.3) ctx.filter = 'none';
-        }
-        cx += g.adv[j];
-      }
-      if (done) eggs.splice(k, 1);
+      g.x0 += g.vx;
+      g.y += g.vy;
+      g.life -= 1 / EGG_LIFE;
+      if (g.life <= 0) { eggs.splice(k, 1); continue; }
+      var a = expo(Math.min(1, g.t / 14)), pop = (1 - a) * 4;
+      /* Lit in the site's glow palette for the first second, then base ink. */
+      var heat = this.pal.length ? Math.max(0, 1 - g.t / 70) : 0;
+      ctx.fillStyle = heat > 0 ? this.tint(g.x0 + g.w / 2, heat * (2 - heat)) : this.fg;
+      ctx.globalAlpha = a * Math.min(1, g.life * 1.4) * 0.92;
+      ctx.fillText(g.s, g.x0, g.y + pop);
     }
     ctx.globalAlpha = 1;
     ctx.textAlign = 'center';
@@ -2596,7 +2555,7 @@ function initLogoWallCycle() {
     this.drawEggs(ctx);
 
     // Keep running while hovered, while drops fall or while glyphs are still fading out
-    if (alive || this.inside || ambOn || drops.length || this.eggs.length) this.raf = requestAnimationFrame(this._tick);
+    if (alive || this.inside || ambOn || drops.length || this.eggs.length || (this.rings && this.rings.length)) this.raf = requestAnimationFrame(this._tick);
   };
 
   /* ---------- Text glow ----------
