@@ -408,3 +408,6 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 /* 94. Live blog and podcast covers (25 Nov): .bc-cover and .pod-cover get the shared WebGL glow (marketing.js initBlogCovers / initPodCovers). The glow sits over the gradient (.pc-bg z 0, or the cover background) and under the lines (z 2) and text (z 3); no own background. No WebGL: nothing is added, the cover stays as before. */
 .bc-cover>.glow-bg,.pod-cover>.glow-bg{z-index:1;background:transparent!important}
 .bc-cover>.glow-bg.is-fallback,.pod-cover>.glow-bg.is-fallback{display:none}
+
+/* 95. Blog cards without a CMS cover image (26 Nov: new posts "types-of-ai-engineers" and "hiring-engineers-for-retail-businesses" have none). The card cover is drawn by script (gradient, glow, outline, text) and only took its height from the image; an empty image is display:none, so the cover collapsed to 0. The wrapper now keeps the card ratio itself. */
+.bc-cover:not(.is-feature):has(>img.w-dyn-bind-empty){aspect-ratio:386/237;width:100%}
