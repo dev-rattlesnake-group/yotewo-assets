@@ -2291,13 +2291,15 @@ function initLogoWallCycle() {
     return out;
   };
   Glyphs.prototype.egg = function (e) {
-    /* Client batch 26 Nov, after the "matrix" reference they sent: a click
-       snaps the line out at the cursor (quick fade-in plus a thin ring from
-       the click), then the line floats away slowly and fades over about five
-       seconds. Earlier lines are not cut short, they keep drifting, so many
-       clicks build a cloud of lines that thin out on their own (up to 12).
-       Each line is one fillText per frame, no blur filter and no per-letter
-       work, so rapid clicking stays smooth. */
+    /* Client, 26 Nov, after the "matrix" reference: moving the mouse distorts
+       the field (glyphs near the cursor are pushed away, see tick); a click
+       glitches it (the glyphs around the click light up and scramble, the
+       field flashes faintly in the palette) and writes a line. Lines never
+       overlap: the line goes at the click if that spot is free, otherwise
+       on the nearest free spot around it, otherwise anywhere free in the
+       block. All lines drift up at the same speed and straight, so they
+       keep their distance while they float away and fade (about 5 s, up to
+       12 at once). One fillText per line per frame, no blur, no ring. */
     var rect = this.el.getBoundingClientRect();
     var ox = rect.left + this.el.clientLeft, oy = rect.top + this.el.clientTop;
     var x = e.clientX - ox, y = e.clientY - oy;
@@ -2305,29 +2307,31 @@ function initLogoWallCycle() {
     eggAt++;
     var ctx = this.ctx, fs = Math.round(this.size * 1.05);
     ctx.font = '500 ' + fs + 'px ' + this.font;
-    var w = ctx.measureText(s).width;
-    var x0 = Math.max(12, Math.min(this.w - w - 12, x - w / 2)), y0 = Math.max(fs, Math.min(this.h - fs, y));
-    this.eggs.push({
-      s: s, w: w, x0: x0, y: y0, t: 0, life: 1,
-      vx: (Math.random() * 16 - 8) / 60,
-      vy: -(6 + Math.random() * 10) / 60
-    });
-    if (this.eggs.length > 12) this.eggs.shift();
-    (this.rings = this.rings || []).push({ x: x, y: y, r: 0, life: 1 });
-    if (this.rings.length > 6) this.rings.shift();
-    /* Client, 26 Nov ("as in the example, but on click"): the glyphs around
-       the click fly apart from it, brighter, and settle back. The cells in
-       the radius light up first so there is something to scatter. */
-    (this.bursts = this.bursts || []).push({ x: x, y: y, t: 0, e: 0 });
-    if (this.bursts.length > 4) this.bursts.shift();
+    var w = ctx.measureText(s).width, W = this.w, H = this.h, eggs = this.eggs, lh = fs * 1.9;
+    function fit(cx, cy) {
+      var x0 = Math.max(12, Math.min(W - w - 12, cx - w / 2)), y0 = Math.max(fs, Math.min(H - fs, cy));
+      for (var k = 0; k < eggs.length; k++) {
+        var g = eggs[k];
+        if (x0 < g.x0 + g.w + 16 && x0 + w + 16 > g.x0 && Math.abs(y0 - g.y) < lh) return null;
+      }
+      return [x0, y0];
+    }
+    var spot = fit(x, y), tries = [[0, -1], [0, 1], [0, -2], [0, 2], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, -3], [0, 3]];
+    for (var q = 0; !spot && q < tries.length; q++) spot = fit(x + tries[q][0] * (w * 0.6 + 24), y + tries[q][1] * lh);
+    for (var n = 0; !spot && n < 40; n++) spot = fit(24 + Math.random() * (W - 48), fs + Math.random() * (H - 2 * fs));
+    if (!spot) { eggs.shift(); spot = fit(x, y) || [Math.max(12, Math.min(W - w - 12, x - w / 2)), Math.max(fs, Math.min(H - fs, y))]; }
+    eggs.push({ s: s, w: w, x0: spot[0], y: spot[1], t: 0, life: 1, vy: -10 / 60 });
+    if (eggs.length > 12) eggs.shift();
+    /* Glitch: light and scramble the glyphs around the click, faint flash. */
+    this.flash = 0.12;
     var BR = 150, cw = this.cw, ch = this.ch, life = this.life, heat = this.heat, seed = this.seed;
     var c0 = Math.max(0, Math.floor((x - BR) / cw)), c1 = Math.min(this.cols - 1, Math.ceil((x + BR) / cw));
     var r0 = Math.max(0, Math.floor((y - BR) / ch)), r1 = Math.min(this.rows - 1, Math.ceil((y + BR) / ch));
     for (var r = r0; r <= r1; r++) for (var c = c0; c <= c1; c++) {
       var ddx = c * cw + cw / 2 - x, ddy = r * ch + ch / 2 - y, dd = Math.sqrt(ddx * ddx + ddy * ddy);
       if (dd >= BR) continue;
-      var k = 1 - dd / BR, ci = r * this.cols + c;
-      if (seed[ci] < 0.25 + 0.6 * k && life[ci] < 0.5 + 0.7 * k) { life[ci] = 0.5 + 0.7 * k; heat[ci] = 1; this.glyph[ci] = this.pick(ci); }
+      var kk = 1 - dd / BR, ci = r * this.cols + c;
+      if (seed[ci] < 0.25 + 0.6 * kk && life[ci] < 0.5 + 0.7 * kk) { life[ci] = 0.5 + 0.7 * kk; heat[ci] = 1; this.glyph[ci] = this.pick(ci); }
     }
     if (!this.raf) this.raf = requestAnimationFrame(this._tick);
   };
@@ -2346,20 +2350,12 @@ function initLogoWallCycle() {
   };
 
   Glyphs.prototype.drawEggs = function (ctx) {
-    var eggs = this.eggs, rings = this.rings;
-    if (rings && rings.length) {
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = this.fg;
-      for (var q = rings.length - 1; q >= 0; q--) {
-        var rg = rings[q];
-        rg.r += 8.7;
-        rg.life -= 0.025;
-        if (rg.life <= 0) { rings.splice(q, 1); continue; }
-        ctx.globalAlpha = rg.life * 0.4;
-        ctx.beginPath();
-        ctx.arc(rg.x, rg.y, rg.r, 0, 6.2832);
-        ctx.stroke();
-      }
+    var eggs = this.eggs;
+    if (this.flash > 0) {
+      ctx.globalAlpha = this.flash;
+      ctx.fillStyle = this.pal.length ? this.tint(this.w / 2, 1) : this.fg;
+      ctx.fillRect(0, 0, this.w, this.h);
+      this.flash = Math.max(0, this.flash - 0.015);
     }
     if (!eggs.length) { ctx.globalAlpha = 1; return; }
     var fs = Math.round(this.size * 1.05);
@@ -2369,10 +2365,9 @@ function initLogoWallCycle() {
     for (var k = eggs.length - 1; k >= 0; k--) {
       var g = eggs[k];
       g.t++;
-      g.x0 += g.vx;
       g.y += g.vy;
       g.life -= 1 / EGG_LIFE;
-      if (g.life <= 0) { eggs.splice(k, 1); continue; }
+      if (g.life <= 0 || g.y < -fs) { eggs.splice(k, 1); continue; }
       var a = expo(Math.min(1, g.t / 14)), pop = (1 - a) * 4;
       /* Lit in the site's glow palette for the first second, then base ink. */
       var heat = this.pal.length ? Math.max(0, 1 - g.t / 70) : 0;
@@ -2544,15 +2539,12 @@ function initLogoWallCycle() {
     ctx.textBaseline = 'middle';
 
     var alive = false, scr = this.word.length ? 0 : this.scramble, hasPal = this.pal.length > 0;
-    /* Click scatter (see egg): out fast (6 frames), back over ~45 frames. */
-    var bursts = this.bursts || [];
-    for (var bi = bursts.length - 1; bi >= 0; bi--) {
-      var bu = bursts[bi];
-      bu.t++;
-      bu.e = bu.t < 6 ? bu.t / 6 : Math.pow(Math.max(0, 1 - (bu.t - 6) / 45), 2);
-      if (bu.t > 51) bursts.splice(bi, 1);
-    }
-    var nb = bursts.length;
+    /* Distort (matrix reference): glyphs within 145px of the cursor are
+       pushed away from it and drawn brighter, eased so they glide. */
+    var dk = this.dk || 0;
+    dk += ((this.inside && !REDUCED_DROPS ? 1 : 0) - dk) * 0.15;
+    this.dk = dk < 0.01 ? 0 : dk;
+    var dOn = this.dk > 0, dpx = this.px, dpy = this.py;
     for (i = 0; i < life.length; i++) {
       var l = life[i];
       if (l <= 0) continue;
@@ -2571,21 +2563,14 @@ function initLogoWallCycle() {
       }
       ctx.globalAlpha = (l > 1 ? 1 : l) * this.opacity;
       if (this.eggs.length && this.underEgg(x, y)) { life[i] = l - this.decay * 4; continue; }
-      if (nb) {
-        var gx = x, gy = y, push = 0;
-        for (var bj = 0; bj < nb; bj++) {
-          var bb = bursts[bj], bdx = x - bb.x, bdy = y - bb.y, bd = Math.sqrt(bdx * bdx + bdy * bdy);
-          if (bd >= 150 || !bb.e) continue;
-          var pw = (150 - bd) / 150 * bb.e;
+      if (dOn) {
+        var bdx = x - dpx, bdy = y - dpy, bd = Math.sqrt(bdx * bdx + bdy * bdy);
+        if (bd < 145) {
+          var pw = (145 - bd) / 145 * this.dk;
           bd = bd || 1;
-          gx += bdx / bd * pw * 55;
-          gy += bdy / bd * pw * 38;
-          if (pw > push) push = pw;
-        }
-        if (push) {
-          ctx.globalAlpha = Math.min(1, (l > 1 ? 1 : l) * this.opacity * (1 + push * 1.5));
-          if (hasPal) ctx.fillStyle = this.tint(x, push);
-          ctx.fillText(this.glyph[i], gx, gy);
+          ctx.globalAlpha = Math.min(1, (l > 1 ? 1 : l) * this.opacity * (1 + pw * 0.8));
+          if (hasPal) ctx.fillStyle = this.tint(x, Math.max(pw, heat[i] > 0 ? heat[i] : 0));
+          ctx.fillText(this.glyph[i], x + bdx / bd * pw * 55, y + bdy / bd * pw * 38);
           life[i] = l - this.decay;
           continue;
         }
@@ -2597,7 +2582,7 @@ function initLogoWallCycle() {
     this.drawEggs(ctx);
 
     // Keep running while hovered, while drops fall or while glyphs are still fading out
-    if (alive || this.inside || ambOn || drops.length || this.eggs.length || (this.rings && this.rings.length) || nb) this.raf = requestAnimationFrame(this._tick);
+    if (alive || this.inside || ambOn || drops.length || this.eggs.length || this.flash > 0 || this.dk > 0) this.raf = requestAnimationFrame(this._tick);
   };
 
   /* ---------- Text glow ----------
