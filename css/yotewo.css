@@ -417,6 +417,6 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 .ev-dup{display:none!important}
 .lw.lw-anim.lw-jobs-why-contract:not(.is-in) .lw-stage{translate:0 calc(5*var(--u))}
 .lw-jobs-why-contract .cc[data-fx~="lift"]{--d:-1.5!important}
-/* Process step pictures ("UI shots" next to the vertical progress line, Find Jobs, Refer a client, Sell your agency): a true cross-fade. The old picture faded out in .2s while the new one only started at .15s, so for a moment both were nearly transparent and the switch looked like a stutter. Now the new one fades in on top and the old one stays until it is covered. */
-.div-process-media .img-process{transition:opacity .25s ease .35s;z-index:0}
-.div-process-media .img-process.is-active{transition:opacity .35s cubic-bezier(.22,1,.36,1);z-index:1}
+/* Process step pictures ("UI shots" next to the vertical progress line, desktop stages): the pictures are transparent UI over the live glow, so any overlap of two of them shows both at once. The old picture leaves quickly, the new one comes in right after it, on top; same timing as the live widget layers in marketing.js. */
+.div-process-media .img-process{transition:opacity .16s ease;z-index:0}
+.div-process-media .img-process.is-active{transition:opacity .38s cubic-bezier(.22,1,.36,1) .14s;z-index:1}
