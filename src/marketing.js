@@ -2323,7 +2323,7 @@ function initLogoWallCycle() {
     eggs.push({ s: s, w: w, x0: spot[0], y: spot[1], t: 0, life: 1, vy: -10 / 60 });
     if (eggs.length > 12) eggs.shift();
     /* Glitch: light and scramble the glyphs around the click, faint flash. */
-    this.flash = 0.12;
+    this.flash = 0.09;
     var BR = 150, cw = this.cw, ch = this.ch, life = this.life, heat = this.heat, seed = this.seed;
     var c0 = Math.max(0, Math.floor((x - BR) / cw)), c1 = Math.min(this.cols - 1, Math.ceil((x + BR) / cw));
     var r0 = Math.max(0, Math.floor((y - BR) / ch)), r1 = Math.min(this.rows - 1, Math.ceil((y + BR) / ch));
@@ -2355,7 +2355,7 @@ function initLogoWallCycle() {
       ctx.globalAlpha = this.flash;
       ctx.fillStyle = this.pal.length ? this.tint(this.w / 2, 1) : this.fg;
       ctx.fillRect(0, 0, this.w, this.h);
-      this.flash = Math.max(0, this.flash - 0.015);
+      this.flash = this.flash > 0.004 ? this.flash * 0.88 : 0;
     }
     if (!eggs.length) { ctx.globalAlpha = 1; return; }
     var fs = Math.round(this.size * 1.05);
@@ -2368,11 +2368,12 @@ function initLogoWallCycle() {
       g.y += g.vy;
       g.life -= 1 / EGG_LIFE;
       if (g.life <= 0 || g.y < -fs) { eggs.splice(k, 1); continue; }
-      var a = expo(Math.min(1, g.t / 14)), pop = (1 - a) * 4;
+      var ti = Math.min(1, g.t / 26), a = 1 - Math.pow(1 - ti, 3), pop = (1 - a) * 6;
       /* Lit in the site's glow palette for the first second, then base ink. */
       var heat = this.pal.length ? Math.max(0, 1 - g.t / 70) : 0;
       ctx.fillStyle = heat > 0 ? this.tint(g.x0 + g.w / 2, heat * (2 - heat)) : this.fg;
-      ctx.globalAlpha = a * Math.min(1, g.life * 1.4) * 0.92;
+      var lf = Math.min(1, g.life * 1.6);
+      ctx.globalAlpha = a * lf * lf * (3 - 2 * lf) * 0.92;
       ctx.fillText(g.s, g.x0, g.y + pop);
     }
     ctx.globalAlpha = 1;
@@ -2541,10 +2542,15 @@ function initLogoWallCycle() {
     var alive = false, scr = this.word.length ? 0 : this.scramble, hasPal = this.pal.length > 0;
     /* Distort (matrix reference): glyphs within 145px of the cursor are
        pushed away from it and drawn brighter, eased so they glide. */
+    /* Smoothed (26 Nov, "smoother"): the push point trails the cursor and the
+       effect eases in and out, so the glyphs glide instead of jumping. */
     var dk = this.dk || 0;
-    dk += ((this.inside && !REDUCED_DROPS ? 1 : 0) - dk) * 0.15;
+    dk += ((this.inside && !REDUCED_DROPS ? 1 : 0) - dk) * 0.07;
     this.dk = dk < 0.01 ? 0 : dk;
-    var dOn = this.dk > 0, dpx = this.px, dpy = this.py;
+    if (this.spx === undefined || !this.dk) { this.spx = this.px; this.spy = this.py; }
+    this.spx += (this.px - this.spx) * 0.14;
+    this.spy += (this.py - this.spy) * 0.14;
+    var dOn = this.dk > 0, dpx = this.spx, dpy = this.spy;
     for (i = 0; i < life.length; i++) {
       var l = life[i];
       if (l <= 0) continue;
@@ -2566,7 +2572,8 @@ function initLogoWallCycle() {
       if (dOn) {
         var bdx = x - dpx, bdy = y - dpy, bd = Math.sqrt(bdx * bdx + bdy * bdy);
         if (bd < 145) {
-          var pw = (145 - bd) / 145 * this.dk;
+          var pw = (145 - bd) / 145;
+          pw = pw * pw * (3 - 2 * pw) * this.dk;
           bd = bd || 1;
           ctx.globalAlpha = Math.min(1, (l > 1 ? 1 : l) * this.opacity * (1 + pw * 0.8));
           if (hasPal) ctx.fillStyle = this.tint(x, Math.max(pw, heat[i] > 0 ? heat[i] : 0));
