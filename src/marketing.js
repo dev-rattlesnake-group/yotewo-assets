@@ -3229,6 +3229,15 @@ function initRevealGroups() {
     var c = l.closest(".container,.container-large") || l;
     c.setAttribute("data-reveal-group", "off");
   });
+  /* Page speed (27 Nov): the first section (the hero) is shown at first
+     paint and rises in with a CSS animation (yotewo.css block 105) instead
+     of waiting for this script, so the hero text counts as painted early
+     (Largest Contentful Paint). The reveal leaves it alone. */
+  var hero = document.querySelector(".main-wrapper > div > section:first-child");
+  if (hero) {
+    hero.setAttribute("data-reveal-group", "off");
+    [].forEach.call(hero.querySelectorAll("[data-reveal-group]"), function (g) { g.setAttribute("data-reveal-group", "off"); });
+  }
   root.classList.add("rg-wait");
   /* Lifting the guard: blocks the reveal does not animate (absolute media,
      legal text, wrappers whose children rise, anything it skipped) used to
@@ -7297,12 +7306,24 @@ function initCmsMenu() {
     });
   }
 
-  load().then(function (items) {
-    if (!items || !items.length) return;
-    fillHeader(items);
-    fillFooter(items);
-    hpFixLinks(document);
-  });
+  /* Page speed (27 Nov): the static menu links are already in the HTML, so
+     /nav-data is read after the page has loaded, in idle time, or at once
+     when the visitor reaches for the menu. */
+  var started = false;
+  function start() {
+    if (started) return;
+    started = true;
+    load().then(function (items) {
+      if (!items || !items.length) return;
+      fillHeader(items);
+      fillFooter(items);
+      hpFixLinks(document);
+    });
+  }
+  var hdr = document.querySelector(".navbar, header, nav");
+  if (hdr) ["pointerover", "focusin", "touchstart"].forEach(function (ev) { hdr.addEventListener(ev, start, { once: true, passive: true }); });
+  function idle() { (window.requestIdleCallback || setTimeout)(start, { timeout: 3000 }); }
+  if (document.readyState === "complete") idle(); else window.addEventListener("load", idle);
 }
 
 /* ==========================================================================
@@ -9201,6 +9222,9 @@ var HP_BASE = "/hire/";
    Once the slug is "hire", this is a no-op. */
 var HP_BASE_LIVE = null;
 function hpBase() {
+  /* Page speed (27 Nov): the collection slug is "hire" now, so the HEAD
+     probe of /hire/frontend-engineers on every page load is skipped. */
+  return Promise.resolve(HP_BASE);
   if (HP_BASE_LIVE) return Promise.resolve(HP_BASE_LIVE);
   try { var c = sessionStorage.getItem("ytw-hp-base"); if (c) { HP_BASE_LIVE = c; return Promise.resolve(c); } } catch (e) {}
   if (!window.fetch) return Promise.resolve(HP_BASE);
@@ -10329,18 +10353,18 @@ function initRateCalc() {
   function go() {
     if (done) return; done = true;
     EV.forEach(function (e) { window.removeEventListener(e, go, { passive: true }); });
-    if (!document.querySelector('script[src*="gtag/js?id=' + GA + '"]')) {
-      add("https://www.googletagmanager.com/gtag/js?id=" + GA);
-      window.gtag("js", new Date());
-      window.gtag("config", GA);
-    }
+    /* Page speed (27 Nov): GA4 is no longer loaded on its own. The GTM
+       container already loads the same GA4 tag (G-XB7CSB61P9), so the direct
+       gtag.js was a second 190 KB copy and counted page views twice. */
     if (!document.querySelector('script[src*="gtm.js?id=' + GTM + '"]')) {
       window.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
       add("https://www.googletagmanager.com/gtm.js?id=" + GTM);
     }
   }
   EV.forEach(function (e) { window.addEventListener(e, go, { passive: true }); });
-  function later() { setTimeout(go, 3500); }
+  /* No interaction: load 10 s after the page has loaded, in idle time, so
+     the tags never compete with the first paint and first input. */
+  function later() { setTimeout(function () { (window.requestIdleCallback || setTimeout)(go, { timeout: 2000 }); }, 10000); }
   if (document.readyState === "complete") later(); else window.addEventListener("load", later);
 })();
 
