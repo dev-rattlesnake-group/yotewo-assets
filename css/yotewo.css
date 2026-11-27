@@ -429,3 +429,5 @@ img.ev-cover:not(.evc>img),img.ev-row_img:not(.evc>img){object-position:-99999px
 .lw .lw-solo{scale:var(--sc,1);transform-origin:50% 50%;box-shadow:inset 0 calc(.6*var(--u)) 0 rgba(255,255,255,.45),0 calc(2*var(--u)) calc(5*var(--u)) rgba(0,0,0,.14),0 calc(22*var(--u)) calc(48*var(--u)) rgba(0,0,0,.38)}
 .lw .lw-solo.lw-glass{box-shadow:inset 0 calc(.6*var(--u)) 0 rgba(255,255,255,.18),0 calc(2*var(--u)) calc(5*var(--u)) rgba(0,0,0,.14),0 calc(22*var(--u)) calc(48*var(--u)) rgba(0,0,0,.32)}
 .glow-bg>canvas{clip-path:inset(3px 0 0 0)}
+/* 99. Widget icons on iPhone (client 27 Nov, hire page chat arrows). Icon SVGs are sized in widget units, so they end up a fractional pixel size, and their round symbols fill the whole viewBox (circle r 6 in 12). Safari clipped the circle to the snapped SVG box and the right and bottom edges looked cut. Icons now paint past their box. */
+.lw svg.lw-ico{overflow:visible}
