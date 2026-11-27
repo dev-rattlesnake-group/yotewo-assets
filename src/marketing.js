@@ -8171,9 +8171,18 @@ function initCoverSizes() {
     var ar = nw && nh ? nw / nh : (+img.getAttribute("width") && +img.getAttribute("height") ? img.getAttribute("width") / img.getAttribute("height") : 16 / 9);
     return Math.ceil(Math.max(r.width, r.height * ar));
   }
+  /* Page speed (27 Nov): on phones a full-height cover photo is cropped from
+     a much wider picture, so at 2-3x screen density the browser took the
+     original file (the How we vet hero: a 1 MB JPEG). On phones only, a
+     cover wider than 800px (full-height hero photos, under a shade or behind
+     copy) asks for 1.25x density instead of the screen's 2-3x. Cards and
+     desktop screens are unchanged. */
+  var dpr = window.devicePixelRatio || 1;
+  var dens = dpr > 1.25 && window.innerWidth < 768 ? 1.25 / dpr : 1;
   function fix(img) {
     var w = need(img);
     if (!w) return;
+    if (w > 800) w = Math.max(800, Math.ceil(w * dens));
     var cur = parseInt(img.getAttribute("data-cover-sizes"), 10) || 0;
     if (w <= cur) return;
     /* Skip when the current sizes already asks for at least this width. */
