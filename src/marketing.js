@@ -2626,7 +2626,7 @@ function initLogoWallCycle() {
 
   function mountTextGlow(el) {
     var mode = el.getAttribute('data-text-glow') || 'once';
-    var fg = toRgb(getComputedStyle(el).color);
+    var fg = toRgb(el.__bgfxFg || getComputedStyle(el).color);
     var lightText = (0.2126 * fg[0] + 0.7152 * fg[1] + 0.0722 * fg[2]) / 255 > 0.55;
     var colors = list(el.getAttribute('data-text-glow-colors'));
     if (!colors.length) colors = TEXT_COLORS[lightText ? 'onDark' : 'onLight'];
@@ -2677,7 +2677,12 @@ function initLogoWallCycle() {
     // darker onLight palette). Only titles inside a WebGL glow block skip
     // it: the glow already moves there. The letters stay split afterwards
     // for the cursor colour play (section 47).
-    if (el.closest('[data-glow-bg]')) {
+    /* Page speed (27 Nov): the page title in the first section (the hero)
+       is shown at first paint and rises in with the rest of the hero in CSS
+       (yotewo.css block 106), so it no longer waits for this script to play
+       the letter entrance (PageSpeed: Largest Contentful Paint). Its letters
+       are split for the cursor colour play only. */
+    if (el.closest('[data-glow-bg]') || (el.tagName === 'H1' && el.closest('.main-wrapper > div > section:first-child'))) {
       el.classList.add('bgfx-run', 'bgfx-done');
       started(el, 0);
       return;
@@ -2781,7 +2786,16 @@ function initLogoWallCycle() {
 
     if (mq('(prefers-reduced-motion: reduce)')) return;
 
-    root.querySelectorAll('[data-text-glow]').forEach(function (el) {
+    /* Page speed (27 Nov): every colour is read first, in one style pass,
+       and only then are the titles split. Reading a colour right after the
+       previous title was split made the browser restyle the page once per
+       title (PageSpeed: forced reflow, about 190 ms on a phone). */
+    var glowEls = [].filter.call(root.querySelectorAll('[data-text-glow]'), function (el) { return !el.__bgfxText; });
+    glowEls.forEach(function (el) {
+      el.__bgfxFg = getComputedStyle(el).color;
+      [].forEach.call(el.querySelectorAll('*'), function (c) { if (!c.__bgfxInk) c.__bgfxInk = getComputedStyle(c).color; });
+    });
+    glowEls.forEach(function (el) {
       if (el.__bgfxText) return;
       el.__bgfxText = true;
       mountTextGlow(el);
@@ -5242,6 +5256,9 @@ function initCalEmbed() {
 function initTitleGlow() {
   var SKIP = ".w-richtext,.text-rich-text,.legal-rich,.div-article-body,a,button,.lw,.nav,[data-text-glow-off]";
   var n = 0;
+  /* Page speed (27 Nov): all headings are measured first and marked after,
+     so setting the attribute does not force a restyle before the next read. */
+  var mark = [];
   document.querySelectorAll("h1:not([data-text-glow]),h2:not([data-text-glow]),h3:not([data-text-glow]),h4:not([data-text-glow])").forEach(function (h) {
     /* Rich text is skipped (blog and legal body copy), except the role page
        description (.career-rich), whose section headings are page titles. */
@@ -5251,6 +5268,9 @@ function initTitleGlow() {
     /* Gradient-clipped titles (background-clip: text) already carry their own
        colour; split letters would lose the clip and turn invisible. */
     if (cs.webkitTextFillColor === "rgba(0, 0, 0, 0)" || /text/.test(cs.backgroundClip || cs.webkitBackgroundClip || "")) return;
+    mark.push(h);
+  });
+  mark.forEach(function (h) {
     h.setAttribute("data-text-glow", "letters");
     if (!h.hasAttribute("data-text-glow-stagger")) h.setAttribute("data-text-glow-stagger", "18");
     n++;
