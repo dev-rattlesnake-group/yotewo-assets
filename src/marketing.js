@@ -3584,7 +3584,8 @@ function initGlowBg() {
       gl.uniform4f(u.uV, i.V[0], i.V[1], i.V[2], i.V[3]);
       gl.uniform1f(u.uBlend, i.blend);
       gl.uniform1f(u.uGain, i.gain);
-      gl.uniform1f(u.uLift, i.lift);
+      /* Lift on phones only (data-glow-lift-mobile, below 768px) when given. */
+      gl.uniform1f(u.uLift, i.liftM && window.innerWidth < 768 ? i.liftM : i.lift);
       gl.uniform3fv(u.uC0, i.colors[0]);
       gl.uniform3fv(u.uC1, i.colors[1]);
       gl.uniform3fv(u.uC2, i.colors[2]);
@@ -3659,7 +3660,8 @@ function initGlowBg() {
       gain = parseFloat(el.getAttribute("data-glow-gain")) || 1.3,
       speed = parseFloat(el.getAttribute("data-glow-speed")) || 1,
       q = Math.min(1, Math.max(0.25, parseFloat(el.getAttribute("data-glow-quality")) || 0.6)),
-      lift = Math.min(0.5, Math.max(0, parseFloat(el.getAttribute("data-glow-lift")) || 0));
+      lift = Math.min(0.5, Math.max(0, parseFloat(el.getAttribute("data-glow-lift")) || 0)),
+      liftM = Math.min(0.5, Math.max(0, parseFloat(el.getAttribute("data-glow-lift-mobile")) || 0));
     if (getComputedStyle(el).position === "static") el.style.position = "relative";
     el.style.isolation = "isolate";
     var wrap = document.createElement("div");
@@ -3680,7 +3682,7 @@ function initGlowBg() {
     }
     var inst = {
       el: el, cv: cv, ctx: ctx, wrap: wrap, V: V, colors: colors,
-      reach: reach, amp: amp, blend: blend, gain: gain, speed: speed, lift: lift,
+      reach: reach, amp: amp, blend: blend, gain: gain, speed: speed, lift: lift, liftM: liftM,
       /* Each block starts at its own point of the sweep, so cards in a row differ. */
       phase: Math.random() * 40,
       mx: 0, my: 0, tx: 0, ty: 0, hv: 0, th: 0,
@@ -3749,7 +3751,7 @@ function initGlowBg() {
        box and drifted to one corner (mirrored variant), so the widget floated
        over a dark gap (client, 26 Nov). Centred variant as in the process
        blocks, and a longer reach so it lights the bottom of the card. */
-    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.2"); m.setAttribute("data-glow-variant", "0"); m.setAttribute("data-glow-lift", "0.14"); });
+    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.2"); m.setAttribute("data-glow-variant", "0"); m.setAttribute("data-glow-lift-mobile", "0.14"); });
     /* Contexts are created only when a glow comes near the viewport, so pages
        with many glow cards (case studies slider) do not open them all at once. */
     var all = [].slice.call(document.querySelectorAll("[data-glow-bg]"));
