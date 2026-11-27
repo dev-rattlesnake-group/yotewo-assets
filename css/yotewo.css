@@ -494,3 +494,6 @@ html.yt-ready .main-wrapper>div>section:first-child :is(.container,.container-la
 html.yt-ready .main-wrapper>div>section:first-child :is(.container,.container-large,[data-reveal-group])>*:nth-child(n+6){animation-delay:.35s}}
 /* 112. Title twitch after the hero rise on phones (client 27 Nov). Every letter of a split title kept will-change after its entrance, so each letter sat on its own compositor layer. While the hero title rose the letters moved as one picture, and when the rise ended the phone redrew each letter layer on the pixel grid separately, which showed as a small twitch of the title. Letters drop their layers once the title is done. */
 .bgfx-lt.bgfx-done.bgfx-done .bgfx-l{will-change:auto}
+
+/* 113. Slider dots and step switches (client, 27 Nov, 23:10). The active dot grows by width, which made the browser lay out the whole controls row and the section on every frame. The dots row is now its own layout island, so the pill only reflows itself. */
+.div-slider-pagination{contain:layout style}
