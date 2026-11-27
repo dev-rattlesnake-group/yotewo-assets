@@ -726,6 +726,10 @@ function loadSwiper(cb) {
   document.head.appendChild(sc);
 }
 
+/* Glows hold their frame for ms (see the glow loop, section on glowRenderer). */
+function ytGlowHold(ms) {
+  window.__ytGlowHoldT = Math.max(window.__ytGlowHoldT || 0, performance.now() + ms);
+}
 function initSwiperSlider() {
   if (!document.querySelector("[data-swiper-group]")) return;
   if (typeof Swiper === "undefined") { loadSwiper(initSwiperSlider); return; }
@@ -786,6 +790,7 @@ function initSwiperSlider() {
          keep role="listitem" instead of Swiper's default "group". */
       a11y: { slideRole: wrap.querySelector('[role="list"]') ? "listitem" : "group" }
     });
+    sw.on("slideChangeTransitionStart", () => ytGlowHold(680));
     /* Numbered steps (Slider [Dark]): with two or more cards in view the
        last cards could never become the active slide, so their number badge
        was never lit. Client, 15 Nov 2026: first Next walked a highlight
@@ -813,6 +818,7 @@ function initSwiperSlider() {
         off(nextB, f >= n - 1);
       };
       const go = (i, speed) => {
+        if (speed !== 0) ytGlowHold(680);
         f = Math.max(0, Math.min(n - 1, i));
         const a = sw.minTranslate(), b = sw.maxTranslate();
         own = 1;
@@ -1523,7 +1529,7 @@ function initAccMedia() {
 
     function show(el) {
       if (!el || el === current) return;
-      if (current) current.removeAttribute("data-accm-on");
+      if (current) { current.removeAttribute("data-accm-on"); ytGlowHold(460); }
       el.setAttribute("data-accm-on", "");
       current = el;
     }
@@ -3596,10 +3602,16 @@ function initGlowBg() {
       i.mx += (i.tx - i.mx) * 0.04;
       i.my += (i.ty - i.my) * 0.04;
       i.hv += (i.th - i.hv) * 0.05;
-      if (cv.width !== i.w || cv.height !== i.h) {
-        cv.width = i.w;
-        cv.height = i.h;
+      /* 27 Nov, 23:10 (client: lag on slider dots and step switches). The one
+         WebGL buffer was resized for every glow of a different size, several
+         times per frame. It now only grows to the largest glow, and each glow
+         draws into its own corner of it (scissor), then copies that corner. */
+      if (cv.width < i.w || cv.height < i.h) {
+        cv.width = Math.max(cv.width, i.w);
+        cv.height = Math.max(cv.height, i.h);
       }
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(0, 0, i.w, i.h);
       gl.viewport(0, 0, i.w, i.h);
       gl.uniform2f(u.uRes, i.w, i.h);
       gl.uniform1f(u.uAmp, i.amp);
@@ -3622,7 +3634,7 @@ function initGlowBg() {
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       i.ctx.clearRect(0, 0, i.w, i.h);
-      i.ctx.drawImage(cv, 0, 0);
+      i.ctx.drawImage(cv, 0, cv.height - i.h, i.w, i.h, 0, 0, i.w, i.h);
     }
     /* Drawn every frame again (client, 27 Nov: the 30 fps cap of 25 Nov made
        the glow look slower and less smooth; the blog, podcast and event cover
@@ -3630,6 +3642,14 @@ function initGlowBg() {
     function loop(ts) {
       raf = 0;
       if (document.hidden || dead) return;
+      /* While a slider travels or a step picture switches, the glows hold
+         their frame (window.__ytGlowHold, set by those modules), so the move
+         gets the whole frame budget. Time resumes where it stopped. */
+      if (ts < (window.__ytGlowHoldT || 0)) {
+        list.forEach(function (i) { i.t0 = null; });
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       var any = false;
       list.forEach(function (i) {
         if (!i.vis) return;
@@ -8731,7 +8751,11 @@ function initLiveWidgets() {
          right after it, above it. */
       var sync = function () {
         var on = img.classList.contains("is-active");
-        layer.style.transition = on ? "opacity .38s cubic-bezier(.22,1,.36,1) .14s" : "opacity .16s ease";
+        if (on && layer.__lwSeen) ytGlowHold(460);
+        layer.__lwSeen = 1;
+        /* 27 Nov, 23:10: the stage stood empty for a moment between the two
+           widgets; the new one now starts as the old one is nearly gone. */
+        layer.style.transition = on ? "opacity .32s cubic-bezier(.22,1,.36,1) .08s" : "opacity .14s ease";
         layer.style.zIndex = on ? "2" : "1";
         layer.style.opacity = on ? "" : "0";
         layer.style.pointerEvents = on ? "auto" : "none";
