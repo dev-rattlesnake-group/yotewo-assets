@@ -460,3 +460,5 @@ section:has([data-ev-current]) h1{text-align:center;text-wrap:balance;margin-lef
 .lw-banner-talents .rows::before{will-change:transform;backface-visibility:hidden}
 .lw-banner-talents .rw+.rw{box-shadow:none}
 .lw-banner-talents .rw+.rw::before{content:"";position:absolute;left:calc(5.6*var(--u));right:calc(5.6*var(--u));top:calc(-1.4*var(--u));height:1px;background:rgba(255,255,255,.07);pointer-events:none}
+/* 104. Accordion media panes with a glow (home, Every engagement model). Every direct child of [data-acc-media] is a crossfade layer that waits scaled to 104 percent and pushed down 1.25rem until it is shown. The glow layer is a child too, so it sat permanently shifted down and the dark pane showed as a black band along the top. The glow layer is not a crossfade layer and stays in place. */
+[data-acc-media]>.glow-bg{transform:none!important;transition:none!important}
