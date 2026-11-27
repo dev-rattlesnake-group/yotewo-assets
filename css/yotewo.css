@@ -452,3 +452,6 @@ section:has([data-ev-current]) h1{text-align:center;text-wrap:balance;margin-lef
 .lw-banner-talents .rw .r,.lw-banner-talents .rw:first-child .r{color:rgba(255,255,255,.6)}
 .lw-banner-talents .rw .p,.lw-banner-talents .rw:first-child .p{color:#fff;font-variant-numeric:tabular-nums}
 .lw-banner-talents .rw .av,.lw-banner-talents .rw .tm,.lw-banner-talents .rw .mock-av{background:rgba(255,255,255,.16)!important;color:#fff!important;box-shadow:inset 0 0 0 calc(.6*var(--u)) rgba(255,255,255,.12)!important}
+/* 102. Find Jobs Open Roles cards, Apply now (client 27 Nov: the button flickers on hover). The card hover turns the button black, and the button's own hover shrank it to 95 percent and rolled its letters. On a full-width button the shrink moves its edge by a few pixels, so with the cursor near the edge the button kept losing and regaining hover and the letters rolled up and down in a loop. Now the whole card drives it: on card hover the button turns black and the letters roll once, the button itself no longer shrinks. */
+@media (hover:hover) and (pointer:fine){.div-talent-card.is-job .div-talent-card-foot>.btn-roll.has-bg:hover,.div-talent-card.is-job .div-talent-card-foot>.btn-roll.has-bg:hover .btn-roll_clip{scale:none}
+.div-talent-card.is-job:hover .div-talent-card-foot>.btn-roll .btn-roll_l{transform:translateY(calc(-1 * var(--rb-lh)))}}
