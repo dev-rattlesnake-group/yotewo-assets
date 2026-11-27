@@ -8176,14 +8176,15 @@ function initCoverSizes() {
      original file (the How we vet hero: a 1 MB JPEG). On phones only, a
      cover wider than 800px (full-height hero photos, under a shade or behind
      copy) asks for 1.25x density instead of the screen's 2-3x, and never more
-     than the largest resized copy in srcset, so the original upload is not
-     downloaded. Cards and desktop screens are unchanged. */
+     than the largest resized copy in srcset (Webflow's -p-NNN files), so the
+     original upload is not downloaded. Cards and desktop screens are
+     unchanged. */
   var dpr = window.devicePixelRatio || 1;
   var phone = window.innerWidth < 768;
   var dens = dpr > 1.25 && phone ? 1.25 / dpr : 1;
   function maxSrcW(img) {
     var m = 0;
-    (img.getAttribute("srcset") || "").split(",").forEach(function (c) { var x = /(\d+)w\s*$/.exec(c.trim()); if (x) m = Math.max(m, +x[1]); });
+    (img.getAttribute("srcset") || "").split(",").forEach(function (c) { var x = /-p-\d+\.\w+\s+(\d+)w\s*$/.exec(c.trim()); if (x) m = Math.max(m, +x[1]); });
     return m;
   }
   function fix(img) {
