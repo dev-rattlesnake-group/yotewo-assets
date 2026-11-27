@@ -3774,7 +3774,7 @@ function initGlowBg() {
        box and drifted to one corner (mirrored variant), so the widget floated
        over a dark gap (client, 26 Nov). Centred variant as in the process
        blocks, and a longer reach so it lights the bottom of the card. */
-    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.2"); m.setAttribute("data-glow-variant", "0"); m.setAttribute("data-glow-lift-mobile", "0.14"); });
+    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.2"); m.setAttribute("data-glow-variant", "0"); /* 27 Nov, 21:45 (client): no raised line on phones any more, the line sits at the bottom like every other glow block. */ });
     /* Contexts are created only when a glow comes near the viewport, so pages
        with many glow cards (case studies slider) do not open them all at once. */
     var all = [].slice.call(document.querySelectorAll("[data-glow-bg]"));
