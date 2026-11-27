@@ -437,3 +437,18 @@ section:has([data-ev-current]) .padding-global:has(.ev-cover){display:none}
 section:has([data-ev-current]) h1{text-align:center;text-wrap:balance;margin-left:auto;margin-right:auto}
 .ev-hero_head{text-align:center;margin-bottom:1.5rem}
 .ev-hero_head .cs-meta{justify-content:center}
+/* 101. Find Jobs banner UI shot (client 27 Nov). (a) The dark overlay of the banner (.gd) sits inside the widget stage, which lifts 4 units on hover and slides in on entrance, so a strip of the photo without the overlay showed along the bottom edge. The overlay now reaches 40px past the banner on every side (the section clips it). (b) Talent list redrawn: darker glass card, the active tab is a pill, the moving highlight is a translucent glass pill instead of a white one, so the row text no longer flips from white to black and back and the initials circles stay visible on every row (they disappeared on the white highlight), thin separators between rows, rate in full white. */
+.lw-banner-talents .lw-abs.gd{left:-40px!important;top:-40px!important;right:-40px!important;bottom:-40px!important;width:auto!important;height:auto!important}
+.lw-banner-talents .sc{background:rgba(16,17,21,.42);border-color:rgba(255,255,255,.12);box-shadow:inset 0 calc(.6*var(--u)) 0 rgba(255,255,255,.1),0 calc(18*var(--u)) calc(44*var(--u)) rgba(0,0,0,.35);gap:calc(11*var(--u));padding:calc(9.3*var(--u))}
+.lw-banner-talents .tabs{align-items:center;gap:calc(4*var(--u));padding:0;color:rgba(255,255,255,.55)}
+.lw-banner-talents .tabs>*{padding:calc(3.4*var(--u)) calc(7.4*var(--u));border-radius:99px}
+.lw-banner-talents .tabs b{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 calc(.6*var(--u)) rgba(255,255,255,.12)}
+.lw-banner-talents .tabs b em{margin-left:calc(2*var(--u));color:rgba(255,255,255,.6)}
+.lw-banner-talents .rows{gap:0}
+.lw-banner-talents .rows::before{background:rgba(255,255,255,.15);box-shadow:inset 0 0 0 calc(.6*var(--u)) rgba(255,255,255,.16);height:calc(28.3*var(--u))}
+.lw-banner-talents .rw,.lw-banner-talents .rw:first-child,.lw-banner-talents .rw .r,.lw-banner-talents .rw:first-child .r,.lw-banner-talents .rw .p,.lw-banner-talents .rw:first-child .p{animation:none!important;transition:none}
+.lw-banner-talents .rw,.lw-banner-talents .rw:first-child{color:#fff;margin-bottom:calc(1.86*var(--u));padding-left:calc(5.6*var(--u))}
+.lw-banner-talents .rw+.rw{box-shadow:0 calc(-1*var(--u)) 0 rgba(255,255,255,.06)}
+.lw-banner-talents .rw .r,.lw-banner-talents .rw:first-child .r{color:rgba(255,255,255,.6)}
+.lw-banner-talents .rw .p,.lw-banner-talents .rw:first-child .p{color:#fff;font-variant-numeric:tabular-nums}
+.lw-banner-talents .rw .av,.lw-banner-talents .rw .tm,.lw-banner-talents .rw .mock-av{background:rgba(255,255,255,.16)!important;color:#fff!important;box-shadow:inset 0 0 0 calc(.6*var(--u)) rgba(255,255,255,.12)!important}
