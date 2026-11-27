@@ -425,3 +425,7 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 img.ev-cover:not(.evc>img),img.ev-row_img:not(.evc>img){object-position:-99999px 0;background:radial-gradient(42% 60% at 22% 72%,#4f6aa6 0%,rgba(79,106,166,.55) 40%,rgba(79,106,166,0) 75%),radial-gradient(45% 55% at 48% 40%,#8a5d84 0%,rgba(138,93,132,0) 75%),radial-gradient(40% 55% at 85% 80%,#7a5068 0%,rgba(122,80,104,0) 75%),linear-gradient(135deg,#7d5574 0%,#5c3d55 35%,#4a3550 60%,#5a3f57 100%)}
 [data-glow-bg]>.glow-bg,[data-glow-bg]>.glow-bg>canvas{border-radius:inherit}
 [data-glow-bg]>.glow-bg{overflow:hidden}
+/* 98. Live widgets, single card (client 27 Nov). The fanned stacks of three cards (matching, matching-2, jobs-why-seniority, vet-1) are now one card in the middle of the picture, a little larger, with a softer layered shadow and a thin light edge on top, and it lifts on hover. Glow canvases are cut 3px from the top: on iPhone Safari the scaled canvas could wrap its bright bottom row to the top edge and show a thin pink line along the top of the box. */
+.lw .lw-solo{scale:var(--sc,1);transform-origin:50% 50%;box-shadow:inset 0 calc(.6*var(--u)) 0 rgba(255,255,255,.45),0 calc(2*var(--u)) calc(5*var(--u)) rgba(0,0,0,.14),0 calc(22*var(--u)) calc(48*var(--u)) rgba(0,0,0,.38)}
+.lw .lw-solo.lw-glass{box-shadow:inset 0 calc(.6*var(--u)) 0 rgba(255,255,255,.18),0 calc(2*var(--u)) calc(5*var(--u)) rgba(0,0,0,.14),0 calc(22*var(--u)) calc(48*var(--u)) rgba(0,0,0,.32)}
+.glow-bg>canvas{clip-path:inset(3px 0 0 0)}
