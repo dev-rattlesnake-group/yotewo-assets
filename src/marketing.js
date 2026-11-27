@@ -2291,120 +2291,59 @@ function initLogoWallCycle() {
     return out;
   };
   Glyphs.prototype.egg = function (e) {
-    /* Client call 24 Nov: clicks must always work. A new click sends the lines
-       already on screen straight to their exit (no drips, so rapid clicks stay
-       light) and shows the new one; at most 3 lines exist at once. */
-    for (var q = 0; q < this.eggs.length; q++) {
-      var og = this.eggs[q], oAt = og.s.length * EGG_GAP + EGG_IN + EGG_HOLD;
-      if (og.t < oAt) og.t = oAt;
-      og.quiet = 1;
-    }
+    /* Client, 27 Nov (final, "1 to 1 as the zip example", rings and distort
+       stay off): every click drops a line exactly where the cursor is, the
+       line starts at the click. Lines stack freely, each one drifts slowly
+       up (6 to 16 px/s) and a little to the side (up to 8 px/s either way)
+       and fades out over 6.5 s with a soft glow, as in the reference. Up to
+       16 lines at once, the oldest goes first. One fillText per line. */
     var rect = this.el.getBoundingClientRect();
     var ox = rect.left + this.el.clientLeft, oy = rect.top + this.el.clientTop;
     var x = e.clientX - ox, y = e.clientY - oy;
-    var s = Array.from(EGGS[eggAt % EGGS.length]);
-    var ctx = this.ctx, fs = Math.round(this.size * 1.05);
-    ctx.font = '500 ' + fs + 'px ' + this.font;
-    var adv = s.map(function (c) { return ctx.measureText(c).width; });
-    var w = adv.reduce(function (p, q) { return p + q; }, 0);
-    /* Client, 15 Nov 2026: the line appears on the cursor, centred on the
-       click, whatever page content is under it. Client, 27 Nov: lines must
-       not land on each other when clicking fast. If a line still on screen
-       (also one fading out) takes that spot, the new one goes to the nearest
-       free spot around the click (a row above or below, then to the sides),
-       else to a free spot anywhere in the block. */
-    var W = this.w, H = this.h, eggs = this.eggs, lh = fs * 1.9;
-    function fit(cx, cy) {
-      var x0 = Math.max(12, Math.min(W - w - 12, cx - w / 2)), y0 = Math.max(fs, Math.min(H - fs, cy));
-      for (var k = 0; k < eggs.length; k++) {
-        var g = eggs[k];
-        if (x0 < g.x0 + g.w + 16 && x0 + w + 16 > g.x0 && Math.abs(y0 - g.y) < lh) return null;
-      }
-      return [x0, y0];
-    }
-    var pick = fit(x, y), tries = [[0, -1], [0, 1], [0, -2], [0, 2], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, -3], [0, 3]];
-    for (var tq = 0; !pick && tq < tries.length; tq++) pick = fit(x + tries[tq][0] * (w * 0.6 + 24), y + tries[tq][1] * lh);
-    for (var tn = 0; !pick && tn < 40; tn++) pick = fit(24 + Math.random() * (W - 48), fs + Math.random() * (H - 2 * fs));
-    if (!pick) { eggs.shift(); pick = fit(x, y) || [Math.max(12, Math.min(W - w - 12, x - w / 2)), Math.max(fs, Math.min(H - fs, y))]; }
+    var s = EGGS[eggAt % EGGS.length];
     eggAt++;
-    this.eggs.push({ s: s, x: pick[0] + w / 2, y: pick[1], t: 0, w: w, adv: adv, x0: pick[0] });
-    if (this.eggs.length > 3) this.eggs.shift();
+    var now = performance.now();
+    this.eggs.push({
+      s: s, x: x, y: y, life: 1, last: now,
+      fs: Math.round(this.size * (0.85 + Math.random() * 0.25)),
+      vx: Math.random() * 16 - 8,
+      vy: -(6 + Math.random() * 10)
+    });
+    if (this.eggs.length > 16) this.eggs.shift();
     if (!this.raf) this.raf = requestAnimationFrame(this._tick);
   };
 
-  /* Easter egg drawing (client 14 Nov: "pop out, premium, in the site's
-     style"). The line is set as real text at the field's own size, not on the glyph
-     grid, and fades in as a whole (14 Nov: smaller, fade, not letter by
-     letter), rising a few pixels out of a soft blur (ease-out-expo), lit
-     with the site's glow palette across the line, then settling into the
-     base ink. After a hold it fades out the same way and a few glyph
-     columns drip from where it was. Glyphs of the field under
-     the line step aside while it is shown. */
-  var EGG_IN = 30, EGG_GAP = 0, EGG_HOLD = 170, EGG_OUT = 36;
-  function expo(x) { return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x); }
-
-  Glyphs.prototype.underEgg = function (x, y) {
-    for (var k = 0; k < this.eggs.length; k++) {
-      var g = this.eggs[k];
-      if (g.w && x > g.x0 - 10 && x < g.x0 + g.w + 10 && Math.abs(y - g.y) < this.ch * 0.9) return true;
-    }
-    return false;
-  };
+  /* Lines are drawn over the field (no glyph avoidance, as in the reference). */
+  Glyphs.prototype.underEgg = function () { return false; };
 
   Glyphs.prototype.drawEggs = function (ctx) {
     var eggs = this.eggs;
     if (!eggs.length) return;
-    var fs = Math.round(this.size * 1.05);
-    ctx.font = '500 ' + fs + 'px ' + this.font;
+    var now = performance.now(), W = this.w;
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowBlur = 9;
     for (var k = eggs.length - 1; k >= 0; k--) {
-      var g = eggs[k], s = g.s, n = s.length;
-      g.t++;
-      if (!g.w) {
-        g.adv = s.map(function (c) { return ctx.measureText(c).width; });
-        g.w = g.adv.reduce(function (a, b) { return a + b; }, 0);
-        g.x0 = Math.max(12, Math.min(this.w - g.w - 12, g.x - g.w / 2));
-        g.y = Math.max(fs, Math.min(this.h - fs, g.y));
+      var g = eggs[k], dt = Math.min(0.05, (now - g.last) / 1000);
+      g.last = now;
+      g.x += g.vx * dt;
+      g.y += g.vy * dt;
+      g.life -= dt / 6.5;
+      if (g.life <= 0 || g.y < -g.fs) { eggs.splice(k, 1); continue; }
+      ctx.font = '500 ' + g.fs + 'px ' + this.font;
+      if (g.w == null) {
+        g.w = ctx.measureText(g.s).width;
+        if (g.x + g.w > W - 8) g.x = Math.max(8, W - 8 - g.w);
       }
-      var outAt = n * EGG_GAP + EGG_IN + EGG_HOLD, done = true, cx = g.x0, whole = false;
-      for (var j = 0; j < n; j++) {
-        var lt = g.t - j * EGG_GAP, a = expo(Math.max(0, lt) / EGG_IN), dy = (1 - a) * 5, bl = (1 - a) * 4;
-        var ot = g.t - outAt - j * EGG_GAP * 0.6;
-        if (ot > 0) {
-          var b = Math.min(1, ot / EGG_OUT);
-          a *= 1 - b * b; dy = -b * 4; bl = b * 3;
-          if (!g.quiet && !g['d' + j] && ot > EGG_OUT * 0.5 && s[j] !== ' ' && Math.random() < 0.18) {
-            g['d' + j] = 1;
-            this.drop(Math.floor((cx + g.adv[j] / 2) / this.cw), Math.floor(g.y / this.ch) + 1, 0.45);
-          }
-        }
-        if (ot < EGG_OUT) done = false;
-        /* Client, 27 Nov (lag on fast clicks): no canvas blur filter (it was
-           applied per letter, the main cost), and once the colour sweep is
-           over the line is drawn in one call instead of letter by letter. */
-        var heat = this.pal.length ? Math.max(0, 1 - Math.max(0, lt - EGG_IN * 0.4) / 70) : 0;
-        if (j === 0 && heat <= 0) {
-          if (a > 0.01) {
-            ctx.fillStyle = this.fg;
-            ctx.globalAlpha = a * 0.92;
-            ctx.fillText(g.str || (g.str = s.join('')), g.x0, g.y + dy);
-          }
-          if (g.quiet || ot <= 0) { if (ot < EGG_OUT) done = false; break; }
-          whole = true;
-        }
-        if (!whole && a > 0.01 && s[j] !== ' ') {
-          /* Glow colour sweeps along the line while it types, then settles. */
-          ctx.fillStyle = heat > 0 ? this.tint(cx, heat * (2 - heat)) : this.fg;
-          ctx.globalAlpha = a * 0.92;
-          ctx.fillText(s[j], cx, g.y + dy);
-        }
-        cx += g.adv[j];
-      }
-      if (done) eggs.splice(k, 1);
+      ctx.globalAlpha = g.life * 0.9;
+      ctx.fillStyle = this.fg;
+      ctx.shadowColor = this.pal.length ? this.tint(g.x + g.w / 2, 1) : this.fg;
+      ctx.fillText(g.s, g.x, g.y);
     }
+    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
   };
 
   Glyphs.prototype.setup = function () {
