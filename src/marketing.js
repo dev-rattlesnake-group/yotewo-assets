@@ -9558,6 +9558,10 @@ onReady(() => {
   initRcTalent();
   initPodLive();
   initHashLanding();
+  /* Hero entrance (yotewo.css block 110): the hero lines wait in their start
+     state until the page is set up, then rise in together. After 4.8s the
+     CSS fallback (5s) is about to play on its own, so it is left alone. */
+  if (performance.now() < 4800) document.documentElement.classList.add("yt-ready");
 });
 
 /* Landing on a #anchor from another page (Hire talent dropdown See all ->
