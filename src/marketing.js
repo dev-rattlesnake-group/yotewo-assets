@@ -2322,7 +2322,8 @@ function initLogoWallCycle() {
     var now = performance.now(), W = this.w;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.shadowBlur = 9;
+    /* 27 Nov (client): no glow shadow on the lines. */
+    ctx.shadowBlur = 0;
     for (var k = eggs.length - 1; k >= 0; k--) {
       var g = eggs[k], dt = Math.min(0.05, (now - g.last) / 1000);
       g.last = now;
@@ -2337,7 +2338,6 @@ function initLogoWallCycle() {
       }
       ctx.globalAlpha = g.life * 0.9;
       ctx.fillStyle = this.fg;
-      ctx.shadowColor = this.pal.length ? this.tint(g.x + g.w / 2, 1) : this.fg;
       ctx.fillText(g.s, g.x, g.y);
     }
     ctx.shadowBlur = 0;
