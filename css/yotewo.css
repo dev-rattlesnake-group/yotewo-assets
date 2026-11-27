@@ -417,7 +417,7 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 .ev-dup{display:none!important}
 .lw.lw-anim.lw-jobs-why-contract:not(.is-in) .lw-stage{translate:0 calc(5*var(--u))}
 .lw-jobs-why-contract .cc[data-fx~="lift"]{--d:-1.5!important}
-/* Process step pictures ("UI shots" next to the vertical progress line, desktop stages): the pictures are transparent UI over the live glow, so any overlap of two of them shows both at once. The old picture leaves quickly, the new one comes in right after it, on top; same timing as the live widget layers in marketing.js. */
+/* Process step pictures ("UI shots" next to the vertical progress line, desktop stages): the pictures are transparent UI over the live glow, so any overlap of two of them shows both at once. The old picture leaves quickly, the new one comes in right after it, on top, with the same timing as the live widget layers in marketing.js. */
 .div-process-media .img-process{transition:opacity .16s ease;z-index:0}
 .div-process-media .img-process.is-active{transition:opacity .38s cubic-bezier(.22,1,.36,1) .14s;z-index:1}
 
