@@ -497,3 +497,7 @@ html.yt-ready .main-wrapper>div>section:first-child :is(.container,.container-la
 
 /* 113. Slider dots and step switches (client, 27 Nov, 23:10). The active dot grows by width, which made the browser lay out the whole controls row and the section on every frame. The dots row is now its own layout island, so the pill only reflows itself. */
 .div-slider-pagination{contain:layout style}
+
+/* 114. Hero ghost before the script is ready (client, 27 Nov, 23:40, home). While the hero lines waited for the script they were painted at 2% opacity, and on a dark hero that showed for a moment as dark text in the raw line layout before the real entrance. The waiting state is now 0.3% opacity (below one colour step, not visible, still counted by PageSpeed as painted). */
+@keyframes yt-hero-rise{from{opacity:.003;translate:0 1.25rem}}
+@keyframes yt-hero-rise2{from{opacity:.003;translate:0 1.25rem}}
