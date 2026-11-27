@@ -5663,6 +5663,53 @@ function evcLines() {
   });
   return s;
 }
+function initEventHero() {
+  /* Event page hero (client 27 Nov): laid out like a blog post. No cover
+     picture, everything centred: a tag (Upcoming event / Past event) and the
+     date above the title, the time and the place under it. The cover and
+     the old date line are hidden in CSS (block 100) before this runs. */
+  var sub = document.querySelector("[data-ev-current]");
+  if (!sub || sub.__evh) return;
+  sub.__evh = 1;
+  var h1 = sub.parentNode.querySelector("h1");
+  if (!h1) return;
+  var sp = sub.querySelectorAll("span");
+  var dTxt = (sp[0] ? sp[0].textContent : sub.textContent).trim();
+  var tTxt = sp[2] ? sp[2].textContent.trim() : "";
+  var M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var m = dTxt.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})/);
+  var date = m ? m[1] + " " + (+m[2]) + ", " + m[3] : dTxt;
+  var past = false;
+  if (m) {
+    var end = new Date(+m[3], M.indexOf(m[1]), +m[2], 23, 59);
+    past = end < new Date();
+  }
+  var vEl = document.querySelector(".ev-venue div, .ev-venue");
+  var place = vEl ? vEl.textContent.replace(/\s+/g, " ").trim() : "";
+  var head = document.createElement("div");
+  head.className = "cs-hero_head ev-hero_head";
+  var meta = document.createElement("div");
+  meta.className = "cs-meta";
+  var tag = document.createElement("div");
+  tag.className = "cs-badge";
+  tag.textContent = past ? "Past event" : "Upcoming event";
+  var dt = document.createElement("div");
+  dt.className = "cs-date";
+  dt.textContent = date;
+  meta.appendChild(tag);
+  meta.appendChild(dt);
+  h1.parentNode.insertBefore(head, h1);
+  head.appendChild(meta);
+  head.appendChild(h1);
+  var line = [tTxt, place].filter(Boolean).join(" \u00b7 ");
+  if (line) {
+    var p = document.createElement("p");
+    p.className = "cs-desc ev-hero_desc";
+    p.textContent = line;
+    head.appendChild(p);
+  }
+}
+
 function initEventCovers() {
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   function shortDate(txt) {
@@ -9458,6 +9505,7 @@ onReady(() => {
      see the final cells, or the clones copy the hidden state and never fade in. */
   initFullRows();
   initLogoWall();
+  initEventHero();
   initRevealGroups();
   initEventCovers();
   initGlowBg();
