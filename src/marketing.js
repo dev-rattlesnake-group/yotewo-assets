@@ -2624,12 +2624,19 @@ function initLogoWallCycle() {
 
   function whenInView(el, fn) {
     if (!('IntersectionObserver' in window)) return fn();
+    /* Client, 27 Nov: titles on slides of a horizontal slider that start off
+       screen to the side never counted as "in view", so they stayed empty
+       until swiped to (and partly visible ones never played). Inside a
+       slider the whole slider decides: every slide's title plays when the
+       slider scrolls in. */
+    var box = el.closest('[data-swiper-group], .swiper, .swiper-wrapper');
+    var target = box || el;
     var io = new IntersectionObserver(function (entries) {
       if (!entries[0].isIntersecting) return;
       io.disconnect();
       fn();
-    }, { threshold: num(el.getAttribute('data-text-glow-start'), 0.4) });
-    io.observe(el);
+    }, { threshold: box ? 0.15 : num(el.getAttribute('data-text-glow-start'), 0.4) });
+    io.observe(target);
   }
 
   // Colour at position u (0-1) along the palette
@@ -3515,7 +3522,7 @@ function initGlowBg() {
   var VS = "attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}";
   var FS = [
     "precision highp float;",
-    "uniform vec2 uRes;uniform float uTime;uniform float uAmp;uniform float uReach;uniform float uBlend;uniform float uGain;",
+    "uniform vec2 uRes;uniform float uTime;uniform float uAmp;uniform float uReach;uniform float uBlend;uniform float uGain;uniform float uLift;",
     "uniform vec3 uC0;uniform vec3 uC1;uniform vec3 uC2;uniform vec3 uC3;uniform vec2 uM;uniform vec2 uP;uniform float uHov;uniform vec4 uV;",
     "vec3 permute(vec3 x){return mod(((x*34.0)+1.0)*x,289.0);}",
     "float snoise(vec2 v){const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);vec2 i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=mod(i,289.0);vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);m=m*m;m=m*m;vec3 x=2.0*fract(p*C.www)-1.0;vec3 h=abs(x)-0.5;vec3 ox=floor(x+0.5);vec3 a0=x-ox;m*=1.79284291400159-0.85373472095314*(a0*a0+h*h);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.0*dot(m,g);}",
@@ -3524,20 +3531,24 @@ function initGlowBg() {
        side to side, leans toward the cursor, with a bright rim at the base. */
     "void main(){vec2 uv=gl_FragCoord.xy/uRes;float ux=uv.x;float t=uTime;float asp=uRes.x/uRes.y;if(uV.x>0.5)uv.x=1.0-uv.x;",
     "uv.x-=uM.x*0.04;",
+    /* Lift (client, 27 Nov): data-glow-lift raises the horizon line inside
+       the block by that share of its height; under the line the light falls
+       off fast, like a reflection. 0 keeps the line at the bottom edge. */
+    "float yr=uv.y-uLift;float yy=yr<0.0?-yr*3.0:yr;",
     "float sw=uV.y+(0.24-0.3*abs(uV.y-0.5))*sin(t*0.33)+0.06*sin(t*0.91+1.3);float cx=mix(sw,uP.x,uHov*0.7);",
     "float dx=(uv.x-cx)*min(asp,2.0);",
     "float n1=snoise(vec2(uv.x*0.9+t*0.08,t*0.15));",
     "float H=0.12*uReach*(0.78+0.3*n1);",
     "float col=exp(-dx*dx*1.7);",
-    "float I=col*exp(-uv.y/max(H,0.02));",
-    "I+=0.22*exp(-uv.y/0.07)*smoothstep(1.6,0.2,abs(dx));",
+    "float I=col*exp(-yy/max(H,0.02));",
+    "I+=0.22*exp(-yy/0.07)*smoothstep(1.6,0.2,abs(dx));",
     /* Rim: a shallow arc that stays inside the block edge to edge (it used
        to dip to the bottom edge and fade out before the sides on wide cards). */
-    "float rimY=0.034+0.03*exp(-dx*dx*2.2);float rim=exp(-pow((uv.y-rimY)/0.012,2.0))*(0.35+0.65*exp(-dx*dx*1.4));",
+    "float rimY=0.034+0.03*exp(-dx*dx*2.2);float rim=exp(-pow((yr-rimY)/0.012,2.0))*(0.35+0.65*exp(-dx*dx*1.4));",
     "vec2 dp=(uv-uP)*vec2(asp,1.0);float bloom=uHov*0.45*exp(-dot(dp,dp)*6.0);",
     "I=uGain*0.95*I+bloom;",
-    "vec3 c=ramp(ux*0.8+uv.y*0.25+0.12*sin(t*0.27)+0.05*n1+uV.z);",
-    "c=mix(c,vec3(1.0),0.4*exp(-uv.y/0.04)*col);",
+    "vec3 c=ramp(ux*0.8+yy*0.25+0.12*sin(t*0.27)+0.05*n1+uV.z);",
+    "c=mix(c,vec3(1.0),0.4*exp(-yy/0.04)*col);",
     "vec3 o=c*min(I,1.1)+vec3(0.9,0.94,1.0)*rim*0.8*uGain;",
     "float a=clamp(max(max(o.r,o.g),o.b),0.0,1.0);",
     "o+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5)/255.0;",
@@ -3600,7 +3611,7 @@ function initGlowBg() {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     var u = {};
-    ["uRes", "uTime", "uAmp", "uReach", "uBlend", "uGain", "uC0", "uC1", "uC2", "uC3", "uM", "uP", "uHov", "uV"].forEach(function (n) {
+    ["uRes", "uTime", "uAmp", "uReach", "uBlend", "uGain", "uLift", "uC0", "uC1", "uC2", "uC3", "uM", "uP", "uHov", "uV"].forEach(function (n) {
       u[n] = gl.getUniformLocation(pr, n);
     });
     gl.clearColor(0, 0, 0, 0);
@@ -3634,6 +3645,7 @@ function initGlowBg() {
       gl.uniform4f(u.uV, i.V[0], i.V[1], i.V[2], i.V[3]);
       gl.uniform1f(u.uBlend, i.blend);
       gl.uniform1f(u.uGain, i.gain);
+      gl.uniform1f(u.uLift, i.lift);
       gl.uniform3fv(u.uC0, i.colors[0]);
       gl.uniform3fv(u.uC1, i.colors[1]);
       gl.uniform3fv(u.uC2, i.colors[2]);
@@ -3707,7 +3719,8 @@ function initGlowBg() {
       blend = parseFloat(el.getAttribute("data-glow-blend")) || 0.6,
       gain = parseFloat(el.getAttribute("data-glow-gain")) || 1.3,
       speed = parseFloat(el.getAttribute("data-glow-speed")) || 1,
-      q = Math.min(1, Math.max(0.25, parseFloat(el.getAttribute("data-glow-quality")) || 0.6));
+      q = Math.min(1, Math.max(0.25, parseFloat(el.getAttribute("data-glow-quality")) || 0.6)),
+      lift = Math.min(0.5, Math.max(0, parseFloat(el.getAttribute("data-glow-lift")) || 0));
     if (getComputedStyle(el).position === "static") el.style.position = "relative";
     el.style.isolation = "isolate";
     var wrap = document.createElement("div");
@@ -3728,7 +3741,7 @@ function initGlowBg() {
     }
     var inst = {
       el: el, cv: cv, ctx: ctx, wrap: wrap, V: V, colors: colors,
-      reach: reach, amp: amp, blend: blend, gain: gain, speed: speed,
+      reach: reach, amp: amp, blend: blend, gain: gain, speed: speed, lift: lift,
       /* Each block starts at its own point of the sweep, so cards in a row differ. */
       phase: Math.random() * 40,
       mx: 0, my: 0, tx: 0, ty: 0, hv: 0, th: 0,
@@ -3797,7 +3810,7 @@ function initGlowBg() {
        box and drifted to one corner (mirrored variant), so the widget floated
        over a dark gap (client, 26 Nov). Centred variant as in the process
        blocks, and a longer reach so it lights the bottom of the card. */
-    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.8"); m.setAttribute("data-glow-variant", "0"); });
+    document.querySelectorAll(".div-ways-media:not([data-glow-reach])").forEach(function (m) { m.setAttribute("data-glow-reach", "3.2"); m.setAttribute("data-glow-variant", "0"); m.setAttribute("data-glow-lift", "0.14"); });
     /* Contexts are created only when a glow comes near the viewport, so pages
        with many glow cards (case studies slider) do not open them all at once. */
     var all = [].slice.call(document.querySelectorAll("[data-glow-bg]"));
