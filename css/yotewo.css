@@ -431,3 +431,9 @@ img.ev-cover:not(.evc>img),img.ev-row_img:not(.evc>img){object-position:-99999px
 .glow-bg>canvas{clip-path:inset(3px 0 0 0)}
 /* 99. Widget icons on iPhone (client 27 Nov, hire page chat arrows). Icon SVGs are sized in widget units, so they end up a fractional pixel size, and their round symbols fill the whole viewBox (circle r 6 in 12). Safari clipped the circle to the snapped SVG box and the right and bottom edges looked cut. Icons now paint past their box. */
 .lw svg.lw-ico{overflow:visible}
+/* 100. Event page hero (client 27 Nov): like a blog post, no cover picture, centred, with a tag. The cover block and the old date line under the title are hidden before the script runs (no flash), marketing.js initEventHero adds the tag (Upcoming event or Past event), the date above the title and the time and place under it. The cover image stays in the CMS for og:image. */
+section:has([data-ev-current]) .padding-global:has(.ev-cover){display:none}
+[data-ev-current]{display:none!important}
+section:has([data-ev-current]) h1{text-align:center;text-wrap:balance;margin-left:auto;margin-right:auto}
+.ev-hero_head{text-align:center;margin-bottom:1.5rem}
+.ev-hero_head .cs-meta{justify-content:center}
