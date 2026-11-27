@@ -3649,22 +3649,18 @@ function initGlowBg() {
       i.ctx.clearRect(0, 0, i.w, i.h);
       i.ctx.drawImage(cv, 0, 0);
     }
-    /* Client batch 25 Nov (lag on the client's laptop): the glow moves slowly,
-       so it is drawn at about 30 fps instead of every frame. Each draw is a
-       WebGL pass plus a copy into the glow's own canvas, so pages with many
-       live covers (blog, podcast, events) did twice the work for no visible
-       difference. */
-    var lastTs = -1e9;
+    /* Drawn every frame again (client, 27 Nov: the 30 fps cap of 25 Nov made
+       the glow look slower and less smooth; the blog, podcast and event cover
+       glows keep their lower render quality). */
     function loop(ts) {
       raf = 0;
       if (document.hidden || dead) return;
-      var any = false, due = ts - lastTs >= 30;
-      if (due) lastTs = ts;
+      var any = false;
       list.forEach(function (i) {
         if (!i.vis) return;
         if (i.t0 === null) i.t0 = ts - i.last;
         i.last = ts - i.t0;
-        if (due) paint(i, i.last);
+        paint(i, i.last);
         any = true;
       });
       if (any) raf = requestAnimationFrame(loop);
