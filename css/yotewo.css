@@ -420,3 +420,8 @@ html.rg-wait [data-reveal-group]>*,html.rg-wait .section .container>*,html.rg-wa
 /* Process step pictures ("UI shots" next to the vertical progress line, desktop stages): the pictures are transparent UI over the live glow, so any overlap of two of them shows both at once. The old picture leaves quickly, the new one comes in right after it, on top; same timing as the live widget layers in marketing.js. */
 .div-process-media .img-process{transition:opacity .16s ease;z-index:0}
 .div-process-media .img-process.is-active{transition:opacity .38s cubic-bezier(.22,1,.36,1) .14s;z-index:1}
+
+/* 97. Client, 27 Nov. (a) Event cover on load: the CMS cover PNG has the title and date baked in, and it showed for a moment before marketing.js put the live cover (with its own text) over it, so the text looked doubled. Until the image is wrapped in .evc it shows only the cover gradient, never its own pixels. (b) iPhone: the live glow canvas could paint past the rounded corners of its box (the bright line under the card looked like it hung below the box); the glow layer and its canvas now carry the box radius themselves. */
+img.ev-cover:not(.evc>img),img.ev-row_img:not(.evc>img){object-position:-99999px 0;background:radial-gradient(42% 60% at 22% 72%,#4f6aa6 0%,rgba(79,106,166,.55) 40%,rgba(79,106,166,0) 75%),radial-gradient(45% 55% at 48% 40%,#8a5d84 0%,rgba(138,93,132,0) 75%),radial-gradient(40% 55% at 85% 80%,#7a5068 0%,rgba(122,80,104,0) 75%),linear-gradient(135deg,#7d5574 0%,#5c3d55 35%,#4a3550 60%,#5a3f57 100%)}
+[data-glow-bg]>.glow-bg,[data-glow-bg]>.glow-bg>canvas{border-radius:inherit}
+[data-glow-bg]>.glow-bg{overflow:hidden}
